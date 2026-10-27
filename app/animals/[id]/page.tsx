@@ -115,7 +115,12 @@ export default function AnimalProfile() {
           <button onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://app.foreverreptiles.com/animals/scan?id=${params.id}&token=${reptile.qr_token}&color=0f172a&bgcolor=ffffff`, '_blank')} className="text-[11px] text-sky-400 font-bold hover:underline">
             🖨️ Print Cage QR
           </button>
-          <button onClick={() => openModal("Feeding")} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-lg shadow transition">+ Log Care</button>
+          <button onClick={() => {
+  const targetUrl = `https://app.foreverreptiles.com/animals/scan?id=${params.id}&token=${reptile.qr_token}`;
+  window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&color=0f172a&bgcolor=ffffff&data=${encodeURIComponent(targetUrl)}`, '_blank');
+}} className="text-[11px] text-sky-400 font-bold hover:underline">
+  🖨️ Print Cage QR
+</button>
         </div>
       </div>
 

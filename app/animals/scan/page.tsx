@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { db } from "../../../lib/supabase";
 
-export default function ScanHandler() {
+function ScanContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState("Validating cage security token...");
@@ -37,12 +37,18 @@ export default function ScanHandler() {
     validateAndBypass();
   }, [animalId, token, router]);
 
+  return <p className="text-xs text-slate-400">{status}</p>;
+}
+
+export default function ScanHandler() {
   return (
     <main className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-100 p-6">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-3 max-w-sm shadow-xl">
         <span className="text-3xl">🐍</span>
         <h2 className="text-sm font-bold text-white">ForeverReptiles Cage Scanner</h2>
-        <p className="text-xs text-slate-400">{status}</p>
+        <Suspense fallback={<p className="text-xs text-slate-400">Loading scanner...</p>}>
+          <ScanContent />
+        </Suspense>
       </div>
     </main>
   );

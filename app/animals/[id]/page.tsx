@@ -12,11 +12,22 @@ export default function AnimalProfile() {
   const router = useRouter();
   const [reptile, setReptile] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
+  const [healthRecords, setHealthRecords] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState("Feeding");
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Health Form State
+  const [healthForm, setHealthForm] = useState({
+    record_date: new Date().toISOString().slice(0, 10),
+    record_type: "Vet Visit",
+    clinic_or_doctor: "",
+    diagnosis: "",
+    treatment_plan: ""
+  });
+  const [isSavingHealth, setIsSavingHealth] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -25,6 +36,9 @@ export default function AnimalProfile() {
 
       const { data: logData } = await db.from("activity_logs").select("*").eq("reptile_id", params.id).order("activity_date", { ascending: false });
       if (logData) setLogs(logData);
+
+      const { data: healthData } = await db.from("reptile_health_records").select("*").eq("reptile_id", params.id).order("record_date", { ascending: false });
+      if (healthData) setHealthRecords(healthData);
     }
     fetchData();
   }, [params.id, refreshKey]);
@@ -32,6 +46,7 @@ export default function AnimalProfile() {
   if (!reptile) return <div className="p-6 text-slate-400 text-center mt-10 animate-pulse">Loading profile...</div>;
 
   const rules = getHusbandryRules(reptile);
+  const showBreeding = reptile.is_breeder || reptile.breeder_mode;
   
   const chartPts = logs
     .filter(l => l.activity_type === 'Weight' || l.activity_type === 'Feeding' || l.activity_type.includes('Shed'))
@@ -47,11 +62,36 @@ export default function AnimalProfile() {
     setRefreshKey(prev => prev + 1);
   };
 
+  const handleSaveHealth = async (e: any) => {
+    e.preventDefault();
+    setIsSavingHealth(true);
+    const { error } = await db.from("reptile_health_records").insert([{
+      reptile_id: params.id,
+      record_date: healthForm.record_date,
+      record_type: healthForm.record_type,
+      clinic_or_doctor: healthForm.clinic_or_doctor || null,
+      diagnosis: healthForm.diagnosis || null,
+      treatment_plan: healthForm.treatment_plan || null
+    }]);
+    if (!error) {
+      setHealthForm({ record_date: new Date().toISOString().slice(0, 10), record_type: "Vet Visit", clinic_or_doctor: "", diagnosis: "", treatment_plan: "" });
+      setRefreshKey(prev => prev + 1);
+    }
+    setIsSavingHealth(false);
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    if (confirm("Delete this history log entry?")) {
+      await db.from("activity_logs").delete().eq("id", logId);
+      setRefreshKey(prev => prev + 1);
+    }
+  };
+
   return (
     <main className="p-4 space-y-4 max-w-2xl mx-auto pb-24">
-      <button onClick={() => router.push('/')} className="text-emerald-400 text-xs font-bold mb-2 hover:underline">
+      <Link href="/" className="text-emerald-400 text-xs font-bold mb-2 inline-block hover:underline">
         &larr; Back to Collection
-      </button>
+      </Link>
       
       {/* Header Profile Card */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex justify-between items-start shadow-lg">
@@ -62,7 +102,11 @@ export default function AnimalProfile() {
             <div className="w-16 h-16 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-2xl">🐍</div>
           )}
           <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">{reptile.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-white tracking-tight">{reptile.name}</h1>
+              {reptile.breeder_mode && <span className="bg-amber-500/95 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px]">🔥 Ready</span>}
+              {reptile.is_breeder && !reptile.breeder_mode && <span className="bg-purple-500/90 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px]">⚤ Breeder</span>}
+            </div>
             <p className="text-xs text-slate-400 mt-0.5">{reptile.species} • {reptile.morph || 'Normal'}</p>
           </div>
         </div>
@@ -77,6 +121,10 @@ export default function AnimalProfile() {
         <button onClick={() => setActiveTab('overview')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'overview' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>Overview</button>
         <button onClick={() => setActiveTab('husbandry')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'husbandry' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>📋 Husbandry</button>
         <button onClick={() => setActiveTab('history')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'history' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>History</button>
+        <button onClick={() => setActiveTab('health')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'health' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>🏥 Health Vault</button>
+        {showBreeding && (
+          <button onClick={() => setActiveTab('breeding')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border text-purple-300 ${activeTab === 'breeding' ? 'bg-purple-500/20 border-purple-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>⚤ Breeding</button>
+        )}
       </div>
 
       {/* Tab Content: OVERVIEW */}
@@ -131,25 +179,95 @@ export default function AnimalProfile() {
               <button onClick={() => openModal('Water & Clean')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-sky-300 font-bold py-1.5 px-2 rounded-lg text-[11px] transition flex items-center justify-center gap-1">+ 🧹 Chores</button>
             </div>
           </div>
-          <h4 className="text-xs font-bold uppercase text-slate-400 mt-3">Animal History</h4>
+          <h4 className="text-xs font-bold uppercase text-slate-400 mt-3">Animal History (Click to Delete)</h4>
           <div className="space-y-1.5">
             {logs.length === 0 ? (
               <p className="text-xs text-slate-500 py-4 text-center border border-dashed border-slate-800 rounded-xl">No logs found.</p>
             ) : (
               logs.map(l => (
-                <div key={l.id} className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 flex justify-between text-xs hover:border-slate-700 transition">
+                <div key={l.id} className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 flex justify-between items-center text-xs hover:border-slate-700 transition">
                   <div>
                     <span className="text-emerald-400 font-semibold">{l.activity_type}</span> 
                     {l.value_numeric && <span className="text-emerald-300 font-bold ml-1">{l.value_numeric}g</span>}
                     {l.prey_weight_g && <span className="text-amber-300 font-bold ml-1">Prey: {l.prey_weight_g}g</span>}
                     <span className="text-slate-400 ml-1">{l.notes || ''}</span>
                   </div>
-                  <span className="text-slate-500 text-[11px] shrink-0 ml-2">
-                    {new Date(l.activity_date || l.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </span>
+                  <div className="flex items-center gap-3 shrink-0 ml-2">
+                    <span className="text-slate-500 text-[11px]">
+                      {new Date(l.activity_date || l.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                    <button onClick={() => handleDeleteLog(l.id)} className="text-red-400 hover:text-red-300 text-[10px] font-bold">🗑️</button>
+                  </div>
                 </div>
               ))
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab Content: HEALTH VAULT */}
+      {activeTab === 'health' && (
+        <div className="space-y-4 animate-in fade-in duration-200">
+          <form onSubmit={handleSaveHealth} className="bg-slate-950 border border-sky-500/30 rounded-xl p-3.5 space-y-3 text-xs">
+            <span className="font-bold text-sky-400 block">🏥 Log Vet / Medical Record</span>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1">Date</label>
+                <input type="date" value={healthForm.record_date} onChange={e => setHealthForm({...healthForm, record_date: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white" />
+              </div>
+              <div>
+                <label className="block text-[10px] text-slate-400 mb-1">Type</label>
+                <select value={healthForm.record_type} onChange={e => setHealthForm({...healthForm, record_type: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white">
+                  <option value="Vet Visit">Vet Visit</option>
+                  <option value="Fecal Exam">Fecal Exam</option>
+                  <option value="Medication">Medication</option>
+                  <option value="Shed Issue">Shed Issue</option>
+                  <option value="General Note">General Note</option>
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="text" value={healthForm.clinic_or_doctor} onChange={e => setHealthForm({...healthForm, clinic_or_doctor: e.target.value})} placeholder="Clinic or Vet Name" className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+              <input type="text" value={healthForm.diagnosis} onChange={e => setHealthForm({...healthForm, diagnosis: e.target.value})} placeholder="Diagnosis / Result" className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+            </div>
+            <textarea rows={2} value={healthForm.treatment_plan} onChange={e => setHealthForm({...healthForm, treatment_plan: e.target.value})} placeholder="Treatment plan, dosage, or medical notes..." className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"></textarea>
+            <button type="submit" disabled={isSavingHealth} className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs transition">
+              {isSavingHealth ? "Saving..." : "+ Save Medical Record"}
+            </button>
+          </form>
+
+          <div className="space-y-2">
+            {healthRecords.length === 0 ? (
+              <p className="text-xs text-slate-500 py-4 text-center border border-dashed border-slate-800 rounded-xl">No health records logged yet.</p>
+            ) : (
+              healthRecords.map(h => (
+                <div key={h.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1 text-xs">
+                  <div className="flex justify-between items-center font-bold text-sky-400">
+                    <span>{h.record_type} • <span className="text-slate-300">{h.record_date}</span></span>
+                    <span className="text-[10px] text-slate-400">{h.clinic_or_doctor}</span>
+                  </div>
+                  {h.diagnosis && <p className="text-slate-200"><strong>Diagnosis:</strong> {h.diagnosis}</p>}
+                  {h.treatment_plan && <p className="text-slate-400">{h.treatment_plan}</p>}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab Content: BREEDING */}
+      {showBreeding && activeTab === 'breeding' && (
+        <div className="space-y-3 animate-in fade-in duration-200">
+          <div className="bg-slate-950 border border-purple-500/30 rounded-xl p-4 text-xs space-y-2">
+            <span className="font-bold text-amber-300 block text-sm">🔥 Seasonal Breeder Conditioning Roadmap</span>
+            <p className="text-slate-300 leading-relaxed">
+              Track seasonal cooling cycles, follicle palpations, locks, and pre-lay sheds for {reptile.name}.
+            </p>
+            <div className="pt-2 border-t border-slate-800 flex gap-2">
+              <button onClick={() => openModal("Lock / Pairing")} className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-2 rounded-xl text-xs transition">
+                + Log Lock / Pairing
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -166,7 +284,7 @@ export default function AnimalProfile() {
 }
 
 // =========================================================================
-// SVG CHART GENERATOR 
+// SVG CHART GENERATOR (Unchanged)
 // =========================================================================
 function drawUnifiedChart(logPts: any[]) {
   const weights = logPts.filter(l => l.type === 'Weight' && l.v !== null && !isNaN(Number(l.v)));

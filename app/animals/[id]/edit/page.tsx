@@ -19,7 +19,8 @@ export default function EditAnimalProfile() {
     photo_url: "",
     gallery_urls: [] as string[],
     is_breeder: false,
-    breeder_mode: false
+    breeder_mode: false,
+    is_public: false
   });
 
   // File Upload State
@@ -37,7 +38,8 @@ export default function EditAnimalProfile() {
           photo_url: data.photo_url || "",
           gallery_urls: data.gallery_urls || [],
           is_breeder: data.is_breeder || false,
-          breeder_mode: data.breeder_mode || false
+          breeder_mode: data.breeder_mode || false,
+          is_public: data.is_public || false
         });
       }
       setIsLoading(false);
@@ -117,7 +119,8 @@ export default function EditAnimalProfile() {
         photo_url: finalAvatarUrl,
         gallery_urls: newGalleryUrls,
         is_breeder: form.is_breeder,
-        breeder_mode: form.breeder_mode
+        breeder_mode: form.breeder_mode,
+        is_public: form.is_public
       }).eq("id", params.id);
 
       router.push(`/animals/${params.id}`);
@@ -172,7 +175,6 @@ export default function EditAnimalProfile() {
         <div className="pt-4 border-t border-slate-800 space-y-4">
           <h2 className="text-sm font-bold text-emerald-400">Media & Photos</h2>
           
-          {/* Primary Avatar */}
           <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex items-center gap-4">
             {form.photo_url ? (
               <img src={form.photo_url} className="w-16 h-16 rounded-lg object-cover border border-slate-700" alt="Avatar" />
@@ -185,14 +187,12 @@ export default function EditAnimalProfile() {
             </div>
           </div>
 
-          {/* Expanded Gallery */}
           <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-3">
             <div>
               <label className="block text-xs font-bold text-slate-300 mb-1">Add to Photo Gallery (Select Multiple)</label>
               <input type="file" accept="image/*" multiple onChange={e => setGalleryFiles(e.target.files)} className="text-[10px] text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-slate-800 file:text-sky-400 hover:file:bg-slate-700" />
             </div>
             
-            {/* Existing Gallery Preview */}
             {form.gallery_urls.length > 0 && (
               <div className="pt-2 border-t border-slate-800">
                 <span className="text-[10px] font-bold text-slate-500 block mb-2">Current Gallery Images (Click to Remove)</span>
@@ -224,6 +224,18 @@ export default function EditAnimalProfile() {
               <span className="text-[10px] text-slate-500 block">Enables pairing/lock logs and seasonal tracking</span>
             </div>
             <input type="checkbox" checked={form.breeder_mode} onChange={e => setForm({...form, breeder_mode: e.target.checked})} className="w-4 h-4 accent-amber-500 rounded bg-slate-800 border-slate-700" />
+          </div>
+        </div>
+
+        {/* Public Showcase Toggle */}
+        <div className="pt-4 border-t border-slate-800 space-y-3">
+          <h2 className="text-sm font-bold text-sky-400">Public Showcase</h2>
+          <div className="flex items-center justify-between bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
+            <div>
+              <span className="text-xs font-bold text-white block">Display in Public Gallery</span>
+              <span className="text-[10px] text-slate-500 block">Allow anyone with your collection link to view this animal.</span>
+            </div>
+            <input type="checkbox" checked={form.is_public} onChange={e => setForm({...form, is_public: e.target.checked})} className="w-4 h-4 accent-sky-500 rounded bg-slate-800 border-slate-700" />
           </div>
         </div>
 

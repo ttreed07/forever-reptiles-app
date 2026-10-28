@@ -18,6 +18,10 @@ export default function AnimalProfile() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState("Feeding");
   const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Lightbox State
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   // Health Form State
   const [healthForm, setHealthForm] = useState({
@@ -47,6 +51,13 @@ export default function AnimalProfile() {
 
   const rules = getHusbandryRules(reptile);
   const showBreeding = reptile.is_breeder || reptile.breeder_mode;
+  
+  // Compile all photos for Lightbox
+  const allPhotos: string[] = [];
+  if (reptile.photo_url) allPhotos.push(reptile.photo_url);
+  if (reptile.gallery_urls && reptile.gallery_urls.length > 0) {
+    allPhotos.push(...reptile.gallery_urls);
+  }
   
   const chartPts = logs
     .filter(l => l.activity_type === 'Weight' || l.activity_type === 'Feeding' || l.activity_type.includes('Shed'))
@@ -97,7 +108,14 @@ export default function AnimalProfile() {
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex justify-between items-start shadow-lg">
         <div className="flex gap-4 items-center">
           {reptile.photo_url ? (
-            <img src={reptile.photo_url} className="w-16 h-16 rounded-xl object-cover border border-slate-700" alt={reptile.name} />
+            <div className="relative group cursor-pointer" onClick={() => { setCurrentPhotoIndex(0); setIsLightboxOpen(true); }}>
+              <img src={reptile.photo_url} className="w-16 h-16 rounded-xl object-cover border border-slate-700 group-hover:opacity-75 transition" alt={reptile.name} />
+              {allPhotos.length > 1 && (
+                <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-slate-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow border border-slate-900">
+                  +{allPhotos.length - 1}
+                </div>
+              )}
+            </div>
           ) : (
             <div className="w-16 h-16 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-2xl">🐍</div>
           )}
@@ -278,6 +296,48 @@ export default function AnimalProfile() {
         </div>
       )}
 
+      {/* LIGHTBOX MODAL */}
+      {isLightboxOpen && allPhotos.length > 0 && (
+        <div className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-slate-300 hover:text-emerald-400 text-4xl font-bold z-50 transition">&times;</button>
+          
+          <div className="relative w-full max-w-4xl flex items-center justify-center flex-1 min-h-0">
+            {allPhotos.length > 1 && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(prev => prev === 0 ? allPhotos.length - 1 : prev - 1); }}
+                className="absolute left-2 md:left-4 text-white text-5xl hover:text-emerald-400 p-2 z-50 drop-shadow-xl"
+              >
+                &#8249;
+              </button>
+            )}
+            
+            <img src={allPhotos[currentPhotoIndex]} className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl border border-slate-800" alt="Gallery View" />
+            
+            {allPhotos.length > 1 && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(prev => prev === allPhotos.length - 1 ? 0 : prev + 1); }}
+                className="absolute right-2 md:right-4 text-white text-5xl hover:text-emerald-400 p-2 z-50 drop-shadow-xl"
+              >
+                &#8250;
+              </button>
+            )}
+          </div>
+
+          {allPhotos.length > 1 && (
+            <div className="flex gap-2 pb-6 pt-4 shrink-0 overflow-x-auto max-w-full px-4">
+              {allPhotos.map((url, idx) => (
+                <img 
+                  key={idx} 
+                  src={url} 
+                  className={`w-14 h-14 object-cover rounded-md cursor-pointer transition-all duration-200 ${currentPhotoIndex === idx ? 'ring-2 ring-emerald-500 scale-110' : 'opacity-50 hover:opacity-100'}`}
+                  onClick={() => setCurrentPhotoIndex(idx)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <LogCareModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -290,7 +350,7 @@ export default function AnimalProfile() {
 }
 
 // =========================================================================
-// SVG CHART GENERATOR (Unchanged)
+// SVG CHART GENERATOR
 // =========================================================================
 function drawUnifiedChart(logPts: any[]) {
   const weights = logPts.filter(l => l.type === 'Weight' && l.v !== null && !isNaN(Number(l.v)));

@@ -45,7 +45,6 @@ export default function EditAnimalProfile() {
     fetchReptile();
   }, [params.id]);
 
-  // Built-in Client-Side Compressor to save Supabase Storage
   const compressImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -55,7 +54,7 @@ export default function EditAnimalProfile() {
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 1200; // Cap width to 1200px
+          const MAX_WIDTH = 1200;
           const scaleSize = MAX_WIDTH / img.width;
           canvas.width = MAX_WIDTH;
           canvas.height = img.height * scaleSize;
@@ -65,9 +64,9 @@ export default function EditAnimalProfile() {
             if (blob) {
               resolve(new File([blob], file.name, { type: "image/jpeg" }));
             } else {
-              resolve(file); // Fallback if compression fails
+              resolve(file); 
             }
-          }, "image/jpeg", 0.7); // 70% quality JPEG
+          }, "image/jpeg", 0.7); 
         };
       };
     });
@@ -85,10 +84,12 @@ export default function EditAnimalProfile() {
   };
 
   const removeGalleryImage = (indexToRemove: number) => {
-    setForm(prev => ({
-      ...prev,
-      gallery_urls: prev.gallery_urls.filter((_, idx) => idx !== indexToRemove)
-    }));
+    if (confirm("Are you sure you want to remove this photo from the gallery?")) {
+      setForm(prev => ({
+        ...prev,
+        gallery_urls: prev.gallery_urls.filter((_, idx) => idx !== indexToRemove)
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

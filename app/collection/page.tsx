@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { db } from "../../lib/supabase";
 
 export default function PublicCollection() {
@@ -38,7 +39,7 @@ export default function PublicCollection() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {reptiles.map(reptile => (
-            <div key={reptile.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg group">
+            <Link href={`/collection/${reptile.id}`} key={reptile.id} className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg group block">
               <div className="aspect-square bg-slate-950 relative overflow-hidden">
                 {reptile.photo_url ? (
                   <img src={reptile.photo_url} alt={reptile.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
@@ -54,7 +55,7 @@ export default function PublicCollection() {
                 <p className="text-xs font-semibold text-emerald-400 mt-1">{reptile.species}</p>
                 <p className="text-xs text-slate-400 mt-1">{reptile.morph || 'Normal'}</p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}

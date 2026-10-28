@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { db } from "../../../lib/supabase";
-import { getHusbandryRules } from "../../../lib/husbandry";
+import { db } from "../../../../lib/supabase";
+import { getHusbandryRules } from "../../../../lib/husbandry";
 
 export default function PublicAnimalProfile() {
   const params = useParams();
@@ -13,17 +13,18 @@ export default function PublicAnimalProfile() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(true);
   
-  // Lightbox State
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   useEffect(() => {
     async function fetchData() {
-      // Only fetch if is_public is true
+      const username = decodeURIComponent(params.username as string).toLowerCase();
+
       const { data: repData, error } = await db
         .from("reptiles")
         .select("*")
         .eq("id", params.id)
+        .eq("owner_username", username)
         .eq("is_public", true)
         .single();
         
@@ -44,14 +45,13 @@ export default function PublicAnimalProfile() {
       setIsLoading(false);
     }
     fetchData();
-  }, [params.id]);
+  }, [params.id, params.username]);
 
   if (isLoading) return <div className="p-6 text-slate-400 text-center mt-10 animate-pulse">Loading public profile...</div>;
   if (!reptile) return <div className="p-6 text-slate-400 text-center mt-10">Animal not found or is not currently public.</div>;
 
   const rules = getHusbandryRules(reptile);
   
-  // Compile all photos for Lightbox
   const allPhotos: string[] = [];
   if (reptile.photo_url) allPhotos.push(reptile.photo_url);
   if (reptile.gallery_urls && reptile.gallery_urls.length > 0) {
@@ -65,7 +65,7 @@ export default function PublicAnimalProfile() {
 
   return (
     <main className="p-4 space-y-4 max-w-2xl mx-auto pb-24">
-      <Link href="/collection" className="text-emerald-400 text-xs font-bold mb-2 inline-block hover:underline">
+      <Link href={`/collection/${params.username}`} className="text-emerald-400 text-xs font-bold mb-2 inline-block hover:underline">
         &larr; Back to Public Gallery
       </Link>
       

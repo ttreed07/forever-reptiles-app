@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { db } from "../../../lib/supabase";
+import { db } from "../../../../lib/supabase";
 
 export default function EditAnimalProfile() {
   const params = useParams();

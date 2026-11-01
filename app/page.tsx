@@ -188,7 +188,18 @@ export default function Home() {
                       <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1 flex-wrap justify-end">
                         {r.breeder_mode && <span className="bg-amber-500/95 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px]">🔥 Ready</span>}
                         {r.is_breeder && !r.breeder_mode && <span className="bg-purple-500/90 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px]">⚤ Breeder</span>}
-                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full border font-bold backdrop-blur-md shadow ${badgeCls}`}>{statusText}</span> </div> <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent p-3 pt-10"> <h3 className="text-base font-extrabold text-white leading-tight drop-shadow truncate"> {r.name} <span className="text-xs font-semibold text-slate-300">({r.sex \vert{}\vert{} '?'}{age ? ' • ' + age : ''})</span> </h3> <p className="text-[11px] text-emerald-300 font-medium truncate">{r.morph \vert{}\vert{} r.species}</p> </div> </div> <div className="px-3 py-2 bg-slate-900 flex items-center justify-between gap-1 text-[11px]"> <span className="font-bold text-slate-200">{r.current_weight_g ? r.current_weight_g + 'g' : 'No weight'}</span> <span className={`${rules.hasManualOverride ? 'text-amber-300 font-semibold' : 'text-slate-400'} truncate`}>
+                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full border font-bold backdrop-blur-md shadow ${badgeCls}`}>{statusText}</span>
+                      </div>
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent p-3 pt-10">
+                        <h3 className="text-base font-extrabold text-white leading-tight drop-shadow truncate">
+                          {r.name} <span className="text-xs font-semibold text-slate-300">({r.sex || '?'}{age ? ' • ' + age : ''})</span>
+                        </h3>
+                        <p className="text-[11px] text-emerald-300 font-medium truncate">{r.morph || r.species}</p>
+                      </div>
+                    </div>
+                    <div className="px-3 py-2 bg-slate-900 flex items-center justify-between gap-1 text-[11px]">
+                      <span className="font-bold text-slate-200">{r.current_weight_g ? r.current_weight_g + 'g' : 'No weight'}</span>
+                      <span className={`${rules.hasManualOverride ? 'text-amber-300 font-semibold' : 'text-slate-400'} truncate`}>
                         {rules.targetShort ? `🎯 ${rules.targetShort}` : `Win: ${rules.windowLabel}`}
                       </span>
                     </div>

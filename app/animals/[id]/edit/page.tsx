@@ -20,7 +20,8 @@ export default function EditAnimalProfile() {
     gallery_urls: [] as string[],
     is_breeder: false,
     breeder_mode: false,
-    is_public: false
+    is_public: false,
+    alerts_muted: false
   });
 
   // File Upload State
@@ -39,7 +40,8 @@ export default function EditAnimalProfile() {
           gallery_urls: data.gallery_urls || [],
           is_breeder: data.is_breeder || false,
           breeder_mode: data.breeder_mode || false,
-          is_public: data.is_public || false
+          is_public: data.is_public || false,
+          alerts_muted: data.alerts_muted || false
         });
       }
       setIsLoading(false);
@@ -120,7 +122,8 @@ export default function EditAnimalProfile() {
         gallery_urls: newGalleryUrls,
         is_breeder: form.is_breeder,
         breeder_mode: form.breeder_mode,
-        is_public: form.is_public
+        is_public: form.is_public,
+        alerts_muted: form.alerts_muted
       }).eq("id", params.id);
 
       router.push(`/animals/${params.id}`);
@@ -236,6 +239,18 @@ export default function EditAnimalProfile() {
               <span className="text-[10px] text-slate-500 block">Allow anyone with your collection link to view this animal.</span>
             </div>
             <input type="checkbox" checked={form.is_public} onChange={e => setForm({...form, is_public: e.target.checked})} className="w-4 h-4 accent-sky-500 rounded bg-slate-800 border-slate-700" />
+          </div>
+        </div>
+
+        {/* Notifications & Alerts Toggle */}
+        <div className="pt-4 border-t border-slate-800 space-y-3">
+          <h2 className="text-sm font-bold text-slate-400">App Preferences</h2>
+          <div className="flex items-center justify-between bg-slate-950 px-3 py-2 rounded-lg border border-slate-800">
+            <div>
+              <span className="text-xs font-bold text-white block">🔕 Mute Husbandry Alerts</span>
+              <span className="text-[10px] text-slate-500 block">Hide this animal from the main Husbandry due/upcoming tasks queue.</span>
+            </div>
+            <input type="checkbox" checked={form.alerts_muted} onChange={e => setForm({...form, alerts_muted: e.target.checked})} className="w-4 h-4 accent-slate-500 rounded bg-slate-800 border-slate-700" />
           </div>
         </div>
 

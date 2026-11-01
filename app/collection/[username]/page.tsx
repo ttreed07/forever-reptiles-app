@@ -30,11 +30,23 @@ export default function PublicCollection() {
 
   if (isLoading) return <div className="p-6 text-slate-400 text-center mt-10 animate-pulse">Loading showcase...</div>;
 
+  const usernameStr = decodeURIComponent(params.username as string);
+
   return (
     <main className="p-6 max-w-5xl mx-auto space-y-6 pb-24">
-      <div className="text-center space-y-2 mb-8 mt-4">
-        <h1 className="text-3xl font-bold text-white tracking-tight capitalize">{decodeURIComponent(params.username as string)}'s Collection</h1>
+      <div className="text-center space-y-2 mb-6 mt-4">
+        <h1 className="text-3xl font-bold text-white tracking-tight capitalize">{usernameStr}'s Collection</h1>
         <p className="text-sm text-slate-400">View active breeders, holdbacks, and bioactive enclosures.</p>
+      </div>
+
+      {/* 2-Tab Navigation for Public View */}
+      <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-2xl border border-slate-800 max-w-xs mx-auto mb-6 shadow-md">
+        <div className="py-2.5 rounded-xl text-xs font-extrabold bg-emerald-500 text-slate-950 flex items-center justify-center gap-1.5 transition">
+          🐍 Collection
+        </div>
+        <Link href={`/collection/${params.username}/analytics`} className="py-2.5 rounded-xl text-xs font-extrabold text-slate-400 text-center hover:text-white transition">
+          📈 Analytics
+        </Link>
       </div>
 
       {reptiles.length === 0 ? (

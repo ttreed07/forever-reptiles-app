@@ -11,65 +11,85 @@ export default function PublicAnimalProfile() {
   const [reptile, setReptile] = useState<any>(null);
   const [logs, setLogs] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
-  const [isLoading, setIsLoading] = useState(true);
   
+  // Lightbox State
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
+  // Chart Filtering State
+  const [chartRange, setChartRange] = useState("6M");
+  const [showWeight, setShowWeight] = useState(true);
+  const [showFeeds, setShowFeeds] = useState(true);
+  const [showSheds, setShowSheds] = useState(true);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
   useEffect(() => {
     async function fetchData() {
-      const username = decodeURIComponent(params.username as string).toLowerCase();
-
-      const { data: repData, error } = await db
-        .from("reptiles")
+      setLoading(true);
+      // Ensure the animal is marked public and belongs to this username
+      const { data: repData } = await db.from("reptiles")
         .select("*")
         .eq("id", params.id)
-        .eq("owner_username", username)
+        .eq("owner_username", params.username)
         .eq("is_public", true)
         .single();
         
-      if (error || !repData) {
-        setIsLoading(false);
-        return;
+      if (repData) {
+        setReptile(repData);
+        const { data: logData } = await db.from("activity_logs").select("*").eq("reptile_id", params.id).order("activity_date", { ascending: false });
+        if (logData) setLogs(logData);
+      } else {
+        setError(true);
       }
-      
-      setReptile(repData);
-
-      const { data: logData } = await db
-        .from("activity_logs")
-        .select("activity_date, created_at, value_numeric, prey_weight_g, activity_type")
-        .eq("reptile_id", params.id)
-        .order("activity_date", { ascending: false });
-        
-      if (logData) setLogs(logData);
-      setIsLoading(false);
+      setLoading(false);
     }
     fetchData();
   }, [params.id, params.username]);
 
-  if (isLoading) return <div className="p-6 text-slate-400 text-center mt-10 animate-pulse">Loading public profile...</div>;
-  if (!reptile) return <div className="p-6 text-slate-400 text-center mt-10">Animal not found or is not currently public.</div>;
+  if (loading) return <div className="p-6 text-slate-400 text-center mt-10 animate-pulse">Loading public profile...</div>;
+  if (error || !reptile) return <div className="p-6 text-slate-400 text-center mt-10">This animal is private or does not exist.</div>;
 
   const rules = getHusbandryRules(reptile);
   
   const allPhotos: string[] = [];
   if (reptile.photo_url) allPhotos.push(reptile.photo_url);
-  if (reptile.gallery_urls && reptile.gallery_urls.length > 0) {
-    allPhotos.push(...reptile.gallery_urls);
-  }
+  if (reptile.gallery_urls && reptile.gallery_urls.length > 0) allPhotos.push(...reptile.gallery_urls);
   
+  const now = new Date();
+  let cutoffDate = new Date("2000-01-01").getTime();
+  if (chartRange === "3M") cutoffDate = new Date(now.setMonth(now.getMonth() - 3)).getTime();
+  if (chartRange === "6M") cutoffDate = new Date(now.setMonth(now.getMonth() - 6)).getTime();
+  if (chartRange === "1Y") cutoffDate = new Date(now.setFullYear(now.getFullYear() - 1)).getTime();
+
   const chartPts = logs
-    .filter(l => l.activity_type === 'Weight' || l.activity_type === 'Feeding' || l.activity_type.includes('Shed'))
+    .filter(l => new Date(l.activity_date || l.created_at).getTime() >= cutoffDate)
+    .filter(l => {
+      if (!showWeight && l.activity_type === 'Weight') return false;
+      if (!showFeeds && l.activity_type === 'Feeding') return false;
+      if (!showSheds && l.activity_type.includes('Shed')) return false;
+      return l.activity_type === 'Weight' || l.activity_type === 'Feeding' || l.activity_type.includes('Shed');
+    })
     .map(l => ({ d: l.activity_date || l.created_at, v: l.value_numeric, pVal: l.prey_weight_g, type: l.activity_type }))
     .sort((a, b) => new Date(a.d).getTime() - new Date(b.d).getTime());
+
+  // Apply local environmental overrides over base rules
+  const envWarm = reptile.custom_temp_warm_f || rules.tWarm;
+  const envCool = reptile.custom_temp_cool_f || rules.tCool;
+  const envBask = reptile.custom_temp_basking_f || rules.tBasking;
+  const envHMin = reptile.custom_humidity_min || rules.hMin;
+  const envHMax = reptile.custom_humidity_max || rules.hMax;
+  const envEnc = reptile.custom_enclosure || rules.enc;
+  const envSub = reptile.custom_substrate || rules.sub;
 
   return (
     <main className="p-4 space-y-4 max-w-2xl mx-auto pb-24">
       <Link href={`/collection/${params.username}`} className="text-emerald-400 text-xs font-bold mb-2 inline-block hover:underline">
-        &larr; Back to Public Gallery
+        &larr; Back to {params.username}'s Collection
       </Link>
       
-      {/* Header Profile Card (Read-Only) */}
+      {/* Header Profile Card */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex justify-between items-start shadow-lg">
         <div className="flex gap-4 items-center">
           {reptile.photo_url ? (
@@ -88,6 +108,7 @@ export default function PublicAnimalProfile() {
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-white tracking-tight">{reptile.name}</h1>
               {reptile.breeder_mode && <span className="bg-amber-500/95 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px]">🔥 Ready</span>}
+              {reptile.is_breeder && !reptile.breeder_mode && <span className="bg-purple-500/90 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px]">⚤ Breeder</span>}
             </div>
             <p className="text-xs text-slate-400 mt-0.5">{reptile.species} • {reptile.morph || 'Normal'}</p>
           </div>
@@ -96,22 +117,38 @@ export default function PublicAnimalProfile() {
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-1.5 border-b border-slate-800 pb-2">
-        <button onClick={() => setActiveTab('overview')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'overview' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>Growth & Stats</button>
-        <button onClick={() => setActiveTab('husbandry')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'husbandry' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>Husbandry Standards</button>
+        <button onClick={() => setActiveTab('overview')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'overview' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>Overview</button>
+        <button onClick={() => setActiveTab('husbandry')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'husbandry' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>📋 Husbandry</button>
+        <button onClick={() => setActiveTab('history')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'history' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>History</button>
       </div>
 
-      {/* Tab Content: OVERVIEW (Chart Only) */}
+      {/* Tab Content: OVERVIEW */}
       {activeTab === 'overview' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
-            <div className="flex flex-wrap justify-between items-center gap-2 mb-1">
+            
+            {/* Chart Control Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
               <div>
                 <span className="text-xs font-bold text-slate-200 block">📈 Lifecycle Growth & Prey Curve</span>
-                <span className="text-[10px] text-slate-400">Proportional Weight (g), Prey Weight (g) & Shed Duration</span>
+                <div className="flex gap-2 mt-1">
+                  <button onClick={() => setShowWeight(!showWeight)} className={`text-[10px] px-2 py-0.5 rounded border ${showWeight ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800 transition'}`}>Weight</button>
+                  <button onClick={() => setShowFeeds(!showFeeds)} className={`text-[10px] px-2 py-0.5 rounded border ${showFeeds ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800 transition'}`}>Feeds</button>
+                  <button onClick={() => setShowSheds(!showSheds)} className={`text-[10px] px-2 py-0.5 rounded border ${showSheds ? 'bg-purple-500/20 text-purple-400 border-purple-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800 transition'}`}>Sheds</button>
+                </div>
+              </div>
+              <div className="flex gap-1.5 items-center">
+                <select value={chartRange} onChange={(e) => setChartRange(e.target.value)} className="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-2 py-1 outline-none focus:border-emerald-500">
+                  <option value="3M">Last 3 Months</option>
+                  <option value="6M">Last 6 Months</option>
+                  <option value="1Y">Last Year</option>
+                  <option value="ALL">All Time</option>
+                </select>
               </div>
             </div>
+
             <div 
-              className="w-full h-52 flex items-center justify-center text-xs text-slate-500 pt-2"
+              className="w-full h-52 flex items-center justify-center text-xs text-slate-500 pt-2 border-t border-slate-800/50 mt-2"
               dangerouslySetInnerHTML={{ __html: drawUnifiedChart(chartPts) }}
             />
           </div>
@@ -120,17 +157,48 @@ export default function PublicAnimalProfile() {
 
       {/* Tab Content: HUSBANDRY */}
       {activeTab === 'husbandry' && (
-        <div className="space-y-3 animate-in fade-in duration-200">
-          <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-3 text-xs text-slate-300" dangerouslySetInnerHTML={{ __html: `🎯 ${rules.summary}` }} />
-          
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5 text-xs">
-            <span className="font-bold text-sky-400 block mb-2">🌡️ Environmental Standards</span>
-            <div className="grid grid-cols-2 gap-2 text-slate-300">
-              <div className="bg-slate-900 p-2 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px]">Thermal Gradient</span><strong>{rules.tWarm}°F</strong> warm • <strong>{rules.tCool}°F</strong> cool<br/>(Bask: <strong>{rules.tBasking}°F</strong>)</div>
-              <div className="bg-slate-900 p-2 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px]">Target Humidity</span><strong>{rules.hMin}% – {rules.hMax}%</strong></div>
-              <div className="col-span-2 bg-slate-900 p-2 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px]">Recommended Footprint</span>{rules.enc}</div>
-              <div className="col-span-2 bg-slate-900 p-2 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px]">Recommended Substrate</span>{rules.sub}</div>
+        <div className="space-y-4 animate-in fade-in duration-200">
+          <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-4 text-xs text-slate-300 relative group">
+            <div dangerouslySetInnerHTML={{ __html: `🎯 ${rules.summary}` }} />
+          </div>
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5 text-xs relative group">
+            <div className="flex justify-between items-center mb-1">
+              <span className="font-bold text-sky-400 block">🌡️ Environmental Standards</span>
             </div>
+            <div className="grid grid-cols-2 gap-2 text-slate-300 pt-1">
+              <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Thermal Gradient</span><strong>{envWarm}°F</strong> warm • <strong>{envCool}°F</strong> cool<br/>(Bask: <strong>{envBask}°F</strong>)</div>
+              <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Target Humidity</span><strong>{envHMin}% – {envHMax}%</strong></div>
+              <div className="col-span-2 bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Recommended Footprint</span>{envEnc}</div>
+              <div className="col-span-2 bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Recommended Substrate</span>{envSub}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab Content: HISTORY */}
+      {activeTab === 'history' && (
+        <div className="space-y-2.5 animate-in fade-in duration-200">
+          <h4 className="text-xs font-bold uppercase text-slate-400 mt-3">Animal History</h4>
+          <div className="space-y-1.5">
+            {logs.length === 0 ? (
+              <p className="text-xs text-slate-500 py-4 text-center border border-dashed border-slate-800 rounded-xl">No logs found.</p>
+            ) : (
+              logs.map(l => (
+                <div key={l.id} className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 flex justify-between items-center text-xs">
+                  <div>
+                    <span className="text-emerald-400 font-semibold">{l.activity_type}</span> 
+                    {l.value_numeric && <span className="text-emerald-300 font-bold ml-1">{l.value_numeric}g</span>}
+                    {l.prey_weight_g && <span className="text-amber-300 font-bold ml-1">Prey: {l.prey_weight_g}g</span>}
+                    <span className="text-slate-400 ml-1">{l.notes || ''}</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 ml-2">
+                    <span className="text-slate-500 text-[11px]">
+                      {new Date(l.activity_date || l.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -181,14 +249,14 @@ export default function PublicAnimalProfile() {
 }
 
 // =========================================================================
-// SVG CHART GENERATOR (Read-Only Version)
+// SVG CHART GENERATOR (Read-Only)
 // =========================================================================
 function drawUnifiedChart(logPts: any[]) {
   const weights = logPts.filter(l => l.type === 'Weight' && l.v !== null && !isNaN(Number(l.v)));
   const preys = logPts.filter(l => l.type === 'Feeding' && l.pVal !== null && !isNaN(Number(l.pVal)));
   const sheds = logPts.filter(l => l.type && l.type.includes('Shed'));
   
-  if (!weights.length && !preys.length && !sheds.length) return `<span class="text-xs text-slate-500 h-full flex items-center justify-center">No chart data available yet.</span>`;
+  if (!weights.length && !preys.length && !sheds.length) return `<span class="text-xs text-slate-500 h-full flex items-center justify-center">No chart data matching these filters.</span>`;
 
   const w = 460, h = 200;
   const mLeft = 52, mRight = 22, mTop = 24, mBottom = 38;

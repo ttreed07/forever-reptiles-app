@@ -96,9 +96,11 @@ export default function Home() {
         members={members} 
       />
 
-      <main className="p-4 space-y-4 max-w-2xl mx-auto pb-24">
-        {/* 3-Tab Main Navigation */}
-        <div className="grid grid-cols-3 bg-slate-900 p-1 rounded-2xl border border-slate-800 mb-4">
+      {/* Changed max-w-2xl to max-w-7xl to fill desktop screens */}
+      <main className="p-4 space-y-5 max-w-7xl mx-auto pb-24">
+        
+        {/* 3-Tab Main Navigation - Restricted to max-w-2xl so it doesn't stretch too wide */}
+        <div className="grid grid-cols-3 bg-slate-900 p-1 rounded-2xl border border-slate-800 max-w-2xl mx-auto shadow-md">
           <div className="py-2.5 rounded-xl text-xs font-extrabold bg-emerald-500 text-slate-950 flex items-center justify-center gap-1.5 transition">
             🐍 Collection
           </div>
@@ -110,17 +112,17 @@ export default function Home() {
           </Link>
         </div>
         
-        <section className="space-y-3">
-          <div className="flex justify-between items-center">
+        <section className="space-y-4">
+          <div className="flex justify-between items-center max-w-4xl mx-auto">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-400">My Collection</p>
             <Link href="/animals/new" className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition shadow">
               + Add Animal
             </Link>
           </div>
 
-          {/* Search and Filter Bar */}
+          {/* Search and Filter Bar - Restricted to max-w-4xl so it doesn't look stretched */}
           {!loading && reptiles.length > 0 && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-col sm:flex-row gap-2 shadow-sm">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-col sm:flex-row gap-2 shadow-sm max-w-4xl mx-auto">
               <input 
                 type="text" 
                 placeholder="Search names or morphs..." 
@@ -153,11 +155,12 @@ export default function Home() {
           {loading ? (
             <div className="text-center text-slate-500 text-sm py-12">Syncing with database...</div>
           ) : reptiles.length === 0 ? (
-            <div className="text-center text-slate-500 text-sm py-12 border border-dashed border-slate-800 rounded-2xl">
+            <div className="text-center text-slate-500 text-sm py-12 border border-dashed border-slate-800 rounded-2xl max-w-4xl mx-auto">
               No animals found. Add one to get started!
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3.5">
+            // Dynamic Grid: 2 columns on phone, 3 on tablet, 4 on small desktop, 5 on widescreen
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pt-4">
               {filteredReptiles.map((r) => {
                 const rules = getHusbandryRules(r, speciesRules, userSpeciesPrefs);
                 const d = daysAgo(r.last_fed);
@@ -186,11 +189,11 @@ export default function Home() {
                         </div>
                       )}
                       <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1 flex-wrap justify-end">
-                        {r.breeder_mode && <span className="bg-amber-500/95 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px]">🔥 Ready</span>}
-                        {r.is_breeder && !r.breeder_mode && <span className="bg-purple-500/90 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px]">⚤ Breeder</span>}
+                        {r.breeder_mode && <span className="bg-amber-500/95 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px] shadow-lg">🔥 Ready</span>}
+                        {r.is_breeder && !r.breeder_mode && <span className="bg-purple-500/90 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px] shadow-lg">⚤ Breeder</span>}
                         <span className={`text-[10px] px-2.5 py-0.5 rounded-full border font-bold backdrop-blur-md shadow ${badgeCls}`}>{statusText}</span>
                       </div>
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent p-3 pt-10">
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent p-3 pt-12">
                         <h3 className="text-base font-extrabold text-white leading-tight drop-shadow truncate">
                           {r.name} <span className="text-xs font-semibold text-slate-300">({r.sex || '?'}{age ? ' • ' + age : ''})</span>
                         </h3>

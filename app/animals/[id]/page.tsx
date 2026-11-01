@@ -160,17 +160,17 @@ export default function AnimalProfile() {
     .sort((a, b) => new Date(a.d).getTime() - new Date(b.d).getTime());
 
   return (
-    <main className="p-4 space-y-4 max-w-2xl mx-auto pb-24">
+    <main className="p-4 space-y-5 max-w-5xl mx-auto pb-24">
       <Link href="/" className="text-emerald-400 text-xs font-bold mb-2 inline-block hover:underline">
         &larr; Back to Collection
       </Link>
       
       {/* Header Profile Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex justify-between items-start shadow-lg">
-        <div className="flex gap-4 items-center">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start shadow-lg gap-4">
+        <div className="flex gap-4 items-center w-full md:w-auto">
           {reptile.photo_url ? (
-            <div className="relative group cursor-pointer" onClick={() => { setCurrentPhotoIndex(0); setIsLightboxOpen(true); }}>
-              <img src={reptile.photo_url} className="w-16 h-16 rounded-xl object-cover border border-slate-700 group-hover:opacity-75 transition" alt={reptile.name} />
+            <div className="relative group cursor-pointer shrink-0" onClick={() => { setCurrentPhotoIndex(0); setIsLightboxOpen(true); }}>
+              <img src={reptile.photo_url} className="w-20 h-20 md:w-24 md:h-24 rounded-xl object-cover border border-slate-700 group-hover:opacity-75 transition" alt={reptile.name} />
               {allPhotos.length > 1 && (
                 <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-slate-950 text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow border border-slate-900">
                   +{allPhotos.length - 1}
@@ -178,55 +178,57 @@ export default function AnimalProfile() {
               )}
             </div>
           ) : (
-            <div className="w-16 h-16 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-2xl">🐍</div>
+            <div className="w-20 h-20 md:w-24 md:h-24 bg-slate-800 border border-slate-700 rounded-xl flex items-center justify-center text-3xl shrink-0">🐍</div>
           )}
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-white tracking-tight">{reptile.name}</h1>
-              {reptile.breeder_mode && <span className="bg-amber-500/95 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px]">🔥 Ready</span>}
-              {reptile.is_breeder && !reptile.breeder_mode && <span className="bg-purple-500/90 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[9px]">⚤ Breeder</span>}
+          <div className="flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">{reptile.name}</h1>
+              {reptile.breeder_mode && <span className="bg-amber-500/95 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[10px]">🔥 Ready</span>}
+              {reptile.is_breeder && !reptile.breeder_mode && <span className="bg-purple-500/90 text-slate-950 font-bold px-1.5 py-0.5 rounded text-[10px]">⚤ Breeder</span>}
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">{reptile.species} • {reptile.morph || 'Normal'}</p>
+            <p className="text-sm text-slate-400 mt-1">{reptile.species} • {reptile.morph || 'Normal'}</p>
           </div>
         </div>
-        <div className="flex flex-col gap-2 items-end">
-          <Link href={`/animals/${params.id}/edit`} className="text-[11px] text-slate-400 font-bold hover:text-white transition">✏️ Edit Profile</Link>
-          <button onClick={() => {
-            const targetUrl = `https://app.foreverreptiles.com/animals/scan?id=${params.id}&token=${reptile.qr_token}`;
-            window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&color=0f172a&bgcolor=ffffff&data=${encodeURIComponent(targetUrl)}`, '_blank');
-          }} className="text-[11px] text-sky-400 font-bold hover:underline">
-            🖨️ Print Cage QR
-          </button>
-          <button onClick={() => openModal("Feeding")} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-lg shadow transition">+ Log Care</button>
+        <div className="flex md:flex-col gap-3 md:gap-2 items-center md:items-end w-full md:w-auto justify-end mt-2 md:mt-0">
+          <button onClick={() => openModal("Feeding")} className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg shadow transition">+ Log Care</button>
+          <div className="flex gap-3 md:gap-2 text-[11px] font-bold">
+            <Link href={`/animals/${params.id}/edit`} className="text-slate-400 hover:text-white transition">✏️ Edit Profile</Link>
+            <button onClick={() => {
+              const targetUrl = `https://app.foreverreptiles.com/animals/scan?id=${params.id}&token=${reptile.qr_token}`;
+              window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&color=0f172a&bgcolor=ffffff&data=${encodeURIComponent(targetUrl)}`, '_blank');
+            }} className="text-sky-400 hover:underline">
+              🖨️ Print QR
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex flex-wrap gap-1.5 border-b border-slate-800 pb-2">
-        <button onClick={() => setActiveTab('overview')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'overview' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>Overview</button>
-        <button onClick={() => setActiveTab('husbandry')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'husbandry' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>📋 Husbandry</button>
-        <button onClick={() => setActiveTab('history')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'history' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>History</button>
-        <button onClick={() => setActiveTab('health')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'health' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>🏥 Health Vault</button>
+        <button onClick={() => setActiveTab('overview')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${activeTab === 'overview' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>Overview</button>
+        <button onClick={() => setActiveTab('husbandry')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${activeTab === 'husbandry' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>📋 Husbandry</button>
+        <button onClick={() => setActiveTab('history')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${activeTab === 'history' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>History</button>
+        <button onClick={() => setActiveTab('health')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition ${activeTab === 'health' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>🏥 Health Vault</button>
         {showBreeding && (
-          <button onClick={() => setActiveTab('breeding')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border text-purple-300 ${activeTab === 'breeding' ? 'bg-purple-500/20 border-purple-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>⚤ Breeding</button>
+          <button onClick={() => setActiveTab('breeding')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border text-purple-300 transition ${activeTab === 'breeding' ? 'bg-purple-500/20 border-purple-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>⚤ Breeding</button>
         )}
       </div>
 
       {/* Tab Content: OVERVIEW */}
       {activeTab === 'overview' && (
         <div className="space-y-4 animate-in fade-in duration-200">
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
               <div>
-                <span className="text-xs font-bold text-slate-200 block">📈 Lifecycle Growth & Prey Curve</span>
-                <div className="flex gap-2 mt-1">
-                  <button onClick={() => setShowWeight(!showWeight)} className={`text-[10px] px-2 py-0.5 rounded border ${showWeight ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800 transition'}`}>Weight</button>
-                  <button onClick={() => setShowFeeds(!showFeeds)} className={`text-[10px] px-2 py-0.5 rounded border ${showFeeds ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800 transition'}`}>Feeds</button>
-                  <button onClick={() => setShowSheds(!showSheds)} className={`text-[10px] px-2 py-0.5 rounded border ${showSheds ? 'bg-purple-500/20 text-purple-400 border-purple-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800 transition'}`}>Sheds</button>
+                <span className="text-sm font-bold text-slate-200 block">📈 Lifecycle Growth & Prey Curve</span>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => setShowWeight(!showWeight)} className={`text-xs px-2.5 py-1 rounded border transition ${showWeight ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800'}`}>Weight</button>
+                  <button onClick={() => setShowFeeds(!showFeeds)} className={`text-xs px-2.5 py-1 rounded border transition ${showFeeds ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800'}`}>Feeds</button>
+                  <button onClick={() => setShowSheds(!showSheds)} className={`text-xs px-2.5 py-1 rounded border transition ${showSheds ? 'bg-purple-500/20 text-purple-400 border-purple-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800'}`}>Sheds</button>
                 </div>
               </div>
               <div className="flex gap-1.5 items-center">
-                <select value={chartRange} onChange={(e) => setChartRange(e.target.value)} className="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-2 py-1 outline-none focus:border-emerald-500">
+                <select value={chartRange} onChange={(e) => setChartRange(e.target.value)} className="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg px-3 py-1.5 outline-none focus:border-emerald-500">
                   <option value="3M">Last 3 Months</option>
                   <option value="6M">Last 6 Months</option>
                   <option value="1Y">Last Year</option>
@@ -234,8 +236,9 @@ export default function AnimalProfile() {
                 </select>
               </div>
             </div>
+            {/* Dynamic height class for desktop expansion */}
             <div 
-              className="w-full h-52 flex items-center justify-center text-xs text-slate-500 pt-2 border-t border-slate-800/50 mt-2"
+              className="w-full h-64 md:h-96 flex items-center justify-center text-xs text-slate-500 pt-2 border-t border-slate-800/50 mt-2 transition-all duration-300"
               dangerouslySetInnerHTML={{ __html: drawUnifiedChart(chartPts) }}
             />
           </div>
@@ -282,7 +285,7 @@ export default function AnimalProfile() {
               </button>
             </div>
           ) : (
-            <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-4 text-xs text-slate-300 relative group pr-10">
+            <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-4 text-sm text-slate-300 relative group pr-10">
               <div dangerouslySetInnerHTML={{ __html: `🎯 ${rules.summary}` }} />
               <button onClick={() => {
                 setEditForm((prev: any) => ({
@@ -342,9 +345,9 @@ export default function AnimalProfile() {
               </button>
             </div>
           ) : (
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5 text-xs relative group">
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5 relative group">
               <div className="flex justify-between items-center mb-1">
-                <span className="font-bold text-sky-400 block">🌡️ Environmental Standards</span>
+                <span className="font-bold text-sky-400 block text-sm">🌡️ Environmental Standards</span>
                 <button onClick={() => {
                   setEditForm((prev: any) => ({
                     ...prev,
@@ -361,11 +364,11 @@ export default function AnimalProfile() {
                   ✏️
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-slate-300 pt-1">
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Thermal Gradient</span><strong>{envWarm}°F</strong> warm • <strong>{envCool}°F</strong> cool<br/>(Bask: <strong>{envBask}°F</strong>)</div>
-                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Target Humidity</span><strong>{envHMin}% – {envHMax}%</strong></div>
-                <div className="col-span-2 bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Recommended Footprint</span>{envEnc}</div>
-                <div className="col-span-2 bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Recommended Substrate</span>{envSub}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-slate-300 pt-1 text-sm">
+                <div className="bg-slate-900 p-3 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[11px] mb-0.5">Thermal Gradient</span><strong>{envWarm}°F</strong> warm • <strong>{envCool}°F</strong> cool<br/>(Bask: <strong>{envBask}°F</strong>)</div>
+                <div className="bg-slate-900 p-3 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[11px] mb-0.5">Target Humidity</span><strong>{envHMin}% – {envHMax}%</strong></div>
+                <div className="md:col-span-2 bg-slate-900 p-3 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[11px] mb-0.5">Recommended Footprint</span>{envEnc}</div>
+                <div className="md:col-span-2 bg-slate-900 p-3 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[11px] mb-0.5">Recommended Substrate</span>{envSub}</div>
               </div>
             </div>
           )}
@@ -374,34 +377,34 @@ export default function AnimalProfile() {
 
       {/* Tab Content: HISTORY */}
       {activeTab === 'history' && (
-        <div className="space-y-2.5 animate-in fade-in duration-200">
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-2.5 space-y-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">⚡ Quick Log to Category</span>
-            <div className="grid grid-cols-4 gap-1.5">
-              <button onClick={() => openModal('Weight')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-emerald-300 font-bold py-1.5 px-2 rounded-lg text-[11px] transition flex items-center justify-center gap-1">+ ⚖️ Weight</button>
-              <button onClick={() => openModal('Feeding')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-300 font-bold py-1.5 px-2 rounded-lg text-[11px] transition flex items-center justify-center gap-1">+ 🐁 Feeding</button>
-              <button onClick={() => openModal('Shed: In the Blue')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-purple-300 font-bold py-1.5 px-2 rounded-lg text-[11px] transition flex items-center justify-center gap-1">+ 🐍 Shed</button>
-              <button onClick={() => openModal('Water & Clean')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-sky-300 font-bold py-1.5 px-2 rounded-lg text-[11px] transition flex items-center justify-center gap-1">+ 🧹 Chores</button>
+        <div className="space-y-3 animate-in fade-in duration-200">
+          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 md:p-4 space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">⚡ Quick Log to Category</span>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <button onClick={() => openModal('Weight')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-emerald-300 font-bold py-2 px-3 rounded-lg text-xs transition flex items-center justify-center gap-1.5">+ ⚖️ Weight</button>
+              <button onClick={() => openModal('Feeding')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-amber-300 font-bold py-2 px-3 rounded-lg text-xs transition flex items-center justify-center gap-1.5">+ 🐁 Feeding</button>
+              <button onClick={() => openModal('Shed: In the Blue')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-purple-300 font-bold py-2 px-3 rounded-lg text-xs transition flex items-center justify-center gap-1.5">+ 🐍 Shed</button>
+              <button onClick={() => openModal('Water & Clean')} className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-sky-300 font-bold py-2 px-3 rounded-lg text-xs transition flex items-center justify-center gap-1.5">+ 🧹 Chores</button>
             </div>
           </div>
-          <h4 className="text-xs font-bold uppercase text-slate-400 mt-3">Animal History (Click to Delete)</h4>
-          <div className="space-y-1.5">
+          <h4 className="text-sm font-bold uppercase text-slate-400 mt-4">Animal History (Click to Delete)</h4>
+          <div className="space-y-2">
             {logs.length === 0 ? (
-              <p className="text-xs text-slate-500 py-4 text-center border border-dashed border-slate-800 rounded-xl">No logs found.</p>
+              <p className="text-sm text-slate-500 py-6 text-center border border-dashed border-slate-800 rounded-xl">No logs found.</p>
             ) : (
               logs.map(l => (
-                <div key={l.id} className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 flex justify-between items-center text-xs hover:border-slate-700 transition">
+                <div key={l.id} className="bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 flex justify-between items-center text-sm hover:border-slate-700 transition">
                   <div>
                     <span className="text-emerald-400 font-semibold">{l.activity_type}</span> 
                     {l.value_numeric && <span className="text-emerald-300 font-bold ml-1">{l.value_numeric}g</span>}
                     {l.prey_weight_g && <span className="text-amber-300 font-bold ml-1">Prey: {l.prey_weight_g}g</span>}
-                    <span className="text-slate-400 ml-1">{l.notes || ''}</span>
+                    <span className="text-slate-400 ml-2">{l.notes || ''}</span>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0 ml-2">
-                    <span className="text-slate-500 text-[11px]">
+                  <div className="flex items-center gap-4 shrink-0 ml-3">
+                    <span className="text-slate-500 text-xs">
                       {new Date(l.activity_date || l.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
-                    <button onClick={() => handleDeleteLog(l.id)} className="text-red-400 hover:text-red-300 text-[10px] font-bold">🗑️</button>
+                    <button onClick={() => handleDeleteLog(l.id)} className="text-red-400 hover:text-red-300 text-xs font-bold">🗑️</button>
                   </div>
                 </div>
               ))
@@ -413,16 +416,16 @@ export default function AnimalProfile() {
       {/* Tab Content: HEALTH VAULT */}
       {activeTab === 'health' && (
         <div className="space-y-4 animate-in fade-in duration-200">
-          <form onSubmit={handleSaveHealth} className="bg-slate-950 border border-sky-500/30 rounded-xl p-3.5 space-y-3 text-xs">
-            <span className="font-bold text-sky-400 block">🏥 Log Vet / Medical Record</span>
-            <div className="grid grid-cols-2 gap-2">
+          <form onSubmit={handleSaveHealth} className="bg-slate-950 border border-sky-500/30 rounded-xl p-4 md:p-5 space-y-4">
+            <span className="font-bold text-sky-400 block text-sm">🏥 Log Vet / Medical Record</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[10px] text-slate-400 mb-1">Date</label>
-                <input type="date" value={healthForm.record_date} onChange={e => setHealthForm({...healthForm, record_date: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white" />
+                <label className="block text-[11px] text-slate-400 mb-1">Date</label>
+                <input type="date" value={healthForm.record_date} onChange={e => setHealthForm({...healthForm, record_date: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" />
               </div>
               <div>
-                <label className="block text-[10px] text-slate-400 mb-1">Type</label>
-                <select value={healthForm.record_type} onChange={e => setHealthForm({...healthForm, record_type: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white">
+                <label className="block text-[11px] text-slate-400 mb-1">Type</label>
+                <select value={healthForm.record_type} onChange={e => setHealthForm({...healthForm, record_type: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white">
                   <option value="Vet Visit">Vet Visit</option>
                   <option value="Fecal Exam">Fecal Exam</option>
                   <option value="Medication">Medication</option>
@@ -431,28 +434,28 @@ export default function AnimalProfile() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <input type="text" value={healthForm.clinic_or_doctor} onChange={e => setHealthForm({...healthForm, clinic_or_doctor: e.target.value})} placeholder="Clinic or Vet Name" className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
-              <input type="text" value={healthForm.diagnosis} onChange={e => setHealthForm({...healthForm, diagnosis: e.target.value})} placeholder="Diagnosis / Result" className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <input type="text" value={healthForm.clinic_or_doctor} onChange={e => setHealthForm({...healthForm, clinic_or_doctor: e.target.value})} placeholder="Clinic or Vet Name" className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" />
+              <input type="text" value={healthForm.diagnosis} onChange={e => setHealthForm({...healthForm, diagnosis: e.target.value})} placeholder="Diagnosis / Result" className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" />
             </div>
-            <textarea rows={2} value={healthForm.treatment_plan} onChange={e => setHealthForm({...healthForm, treatment_plan: e.target.value})} placeholder="Treatment plan, dosage, or medical notes..." className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white"></textarea>
-            <button type="submit" disabled={isSavingHealth} className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs transition">
+            <textarea rows={3} value={healthForm.treatment_plan} onChange={e => setHealthForm({...healthForm, treatment_plan: e.target.value})} placeholder="Treatment plan, dosage, or medical notes..." className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-white"></textarea>
+            <button type="submit" disabled={isSavingHealth} className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3 rounded-lg text-sm transition">
               {isSavingHealth ? "Saving..." : "+ Save Medical Record"}
             </button>
           </form>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {healthRecords.length === 0 ? (
-              <p className="text-xs text-slate-500 py-4 text-center border border-dashed border-slate-800 rounded-xl">No health records logged yet.</p>
+              <p className="text-sm text-slate-500 py-6 text-center border border-dashed border-slate-800 rounded-xl">No health records logged yet.</p>
             ) : (
               healthRecords.map(h => (
-                <div key={h.id} className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1 text-xs">
+                <div key={h.id} className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-1.5 text-sm">
                   <div className="flex justify-between items-center font-bold text-sky-400">
                     <span>{h.record_type} • <span className="text-slate-300">{h.record_date}</span></span>
-                    <span className="text-[10px] text-slate-400">{h.clinic_or_doctor}</span>
+                    <span className="text-[11px] text-slate-400">{h.clinic_or_doctor}</span>
                   </div>
                   {h.diagnosis && <p className="text-slate-200"><strong>Diagnosis:</strong> {h.diagnosis}</p>}
-                  {h.treatment_plan && <p className="text-slate-400">{h.treatment_plan}</p>}
+                  {h.treatment_plan && <p className="text-slate-400 mt-1">{h.treatment_plan}</p>}
                 </div>
               ))
             )}
@@ -462,14 +465,14 @@ export default function AnimalProfile() {
 
       {/* Tab Content: BREEDING */}
       {showBreeding && activeTab === 'breeding' && (
-        <div className="space-y-3 animate-in fade-in duration-200">
-          <div className="bg-slate-950 border border-purple-500/30 rounded-xl p-4 text-xs space-y-2">
-            <span className="font-bold text-amber-300 block text-sm">🔥 Seasonal Breeder Conditioning Roadmap</span>
-            <p className="text-slate-300 leading-relaxed">
+        <div className="space-y-4 animate-in fade-in duration-200">
+          <div className="bg-slate-950 border border-purple-500/30 rounded-xl p-5 space-y-3">
+            <span className="font-bold text-amber-300 block text-base">🔥 Seasonal Breeder Conditioning Roadmap</span>
+            <p className="text-slate-300 text-sm leading-relaxed">
               Track seasonal cooling cycles, follicle palpations, locks, and pre-lay sheds for {reptile.name}.
             </p>
-            <div className="pt-2 border-t border-slate-800 flex gap-2">
-              <button onClick={() => openModal("Lock / Pairing")} className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-3 py-2 rounded-xl text-xs transition">
+            <div className="pt-3 border-t border-slate-800 flex gap-2">
+              <button onClick={() => openModal("Lock / Pairing")} className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2.5 rounded-xl text-sm transition shadow">
                 + Log Lock / Pairing
               </button>
             </div>
@@ -482,7 +485,7 @@ export default function AnimalProfile() {
         <div className="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
           <button onClick={() => setIsLightboxOpen(false)} className="absolute top-6 right-6 text-slate-300 hover:text-emerald-400 text-4xl font-bold z-50 transition">&times;</button>
           
-          <div className="relative w-full max-w-4xl flex items-center justify-center flex-1 min-h-0">
+          <div className="relative w-full max-w-5xl flex items-center justify-center flex-1 min-h-0">
             {allPhotos.length > 1 && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setCurrentPhotoIndex(prev => prev === 0 ? allPhotos.length - 1 : prev - 1); }}
@@ -492,7 +495,7 @@ export default function AnimalProfile() {
               </button>
             )}
             
-            <img src={allPhotos[currentPhotoIndex]} className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl border border-slate-800" alt="Gallery View" />
+            <img src={allPhotos[currentPhotoIndex]} className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl border border-slate-800" alt="Gallery View" />
             
             {allPhotos.length > 1 && (
               <button 
@@ -510,7 +513,7 @@ export default function AnimalProfile() {
                 <img 
                   key={idx} 
                   src={url} 
-                  className={`w-14 h-14 object-cover rounded-md cursor-pointer transition-all duration-200 ${currentPhotoIndex === idx ? 'ring-2 ring-emerald-500 scale-110' : 'opacity-50 hover:opacity-100'}`}
+                  className={`w-16 h-16 object-cover rounded-md cursor-pointer transition-all duration-200 ${currentPhotoIndex === idx ? 'ring-2 ring-emerald-500 scale-110' : 'opacity-50 hover:opacity-100'}`}
                   onClick={() => setCurrentPhotoIndex(idx)}
                 />
               ))}
@@ -530,15 +533,19 @@ export default function AnimalProfile() {
   );
 }
 
+// =========================================================================
+// WIDESCREEN SVG CHART GENERATOR (900x300)
+// =========================================================================
 function drawUnifiedChart(logPts: any[]) {
   const weights = logPts.filter(l => l.type === 'Weight' && l.v !== null && !isNaN(Number(l.v)));
   const preys = logPts.filter(l => l.type === 'Feeding' && l.pVal !== null && !isNaN(Number(l.pVal)));
   const sheds = logPts.filter(l => l.type && l.type.includes('Shed'));
   
-  if (!weights.length && !preys.length && !sheds.length) return `<span class="text-xs text-slate-500 h-full flex items-center justify-center">No chart data matching these filters.</span>`;
+  if (!weights.length && !preys.length && !sheds.length) return `<span class="text-sm text-slate-500 h-full flex items-center justify-center">No chart data matching these filters.</span>`;
 
-  const w = 460, h = 200;
-  const mLeft = 52, mRight = 22, mTop = 24, mBottom = 38;
+  // Upgraded to a 900x300 viewBox for cinematic desktop scaling
+  const w = 900, h = 300;
+  const mLeft = 60, mRight = 30, mTop = 30, mBottom = 45;
   const plotW = w - mLeft - mRight;
   const plotH = h - mTop - mBottom;
 
@@ -558,29 +565,31 @@ function drawUnifiedChart(logPts: any[]) {
   const yGridSvg = uniqueYTicks.map(val => {
     const y = scaleY(val);
     return `
-      <line x1="${mLeft}" y1="${y}" x2="${w - mRight}" y2="${y}" stroke="#1e293b" stroke-width="1" stroke-dasharray="${val === 0 ? '' : '3,3'}" />
-      <text x="${mLeft - 6}" y="${y + 3}" text-anchor="end" fill="#64748b" font-size="8.5" font-weight="600">${val}g</text>
+      <line x1="${mLeft}" y1="${y}" x2="${w - mRight}" y2="${y}" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="${val === 0 ? '' : '4,4'}" />
+      <text x="${mLeft - 8}" y="${y + 4}" text-anchor="end" fill="#64748b" font-size="11" font-weight="600">${val}g</text>
     `;
   }).join('');
-  const yAxisLine = `<line x1="${mLeft}" y1="${mTop}" x2="${mLeft}" y2="${mTop + plotH}" stroke="#334155" stroke-width="1.2" />`;
-  const yAxisTitle = `<text x="12" y="${mTop + plotH / 2}" text-anchor="middle" fill="#94a3b8" font-size="9" font-weight="bold" transform="rotate(-90, 12, ${mTop + plotH / 2})">Weight (g)</text>`;
+  
+  const yAxisLine = `<line x1="${mLeft}" y1="${mTop}" x2="${mLeft}" y2="${mTop + plotH}" stroke="#334155" stroke-width="2" />`;
+  const yAxisTitle = `<text x="18" y="${mTop + plotH / 2}" text-anchor="middle" fill="#94a3b8" font-size="12" font-weight="bold" transform="rotate(-90, 18, ${mTop + plotH / 2})">Weight (g)</text>`;
 
   let xTicksTimes: number[] = [];
   if (minT === maxT) {
     xTicksTimes = [minT];
   } else {
-    const count = Math.min(5, Math.max(2, logPts.length));
+    // Extended to 8 ticks to gracefully fill the wider screen
+    const count = Math.min(8, Math.max(3, logPts.length));
     for (let i = 0; i < count; i++) xTicksTimes.push(minT + ((maxT - minT) * i) / (count - 1));
   }
   const xTicksSvg = xTicksTimes.map(t => {
     const x = scaleX(t);
     const lbl = new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     return `
-      <line x1="${x}" y1="${mTop + plotH}" x2="${x}" y2="${mTop + plotH + 4}" stroke="#475569" stroke-width="1" />
-      <text x="${x}" y="${mTop + plotH + 14}" text-anchor="middle" fill="#64748b" font-size="8.5" font-weight="600">${lbl}</text>
+      <line x1="${x}" y1="${mTop + plotH}" x2="${x}" y2="${mTop + plotH + 6}" stroke="#475569" stroke-width="1.5" />
+      <text x="${x}" y="${mTop + plotH + 20}" text-anchor="middle" fill="#64748b" font-size="11" font-weight="600">${lbl}</text>
     `;
   }).join('');
-  const xAxisTitle = `<text x="${mLeft + plotW / 2}" y="${h - 4}" text-anchor="middle" fill="#94a3b8" font-size="9" font-weight="bold">Date</text>`;
+  const xAxisTitle = `<text x="${mLeft + plotW / 2}" y="${h - 4}" text-anchor="middle" fill="#94a3b8" font-size="12" font-weight="bold">Date</text>`;
 
   const sortedSheds = [...sheds].sort((a, b) => new Date(a.d).getTime() - new Date(b.d).getTime());
   const shedGroups: any[] = [];
@@ -614,15 +623,15 @@ function drawUnifiedChart(logPts: any[]) {
   if (activeShedGroup) shedGroups.push(activeShedGroup);
 
   const shedSvg = shedGroups.map((grp, gIdx) => {
-    const yShed = mTop + 10 + (gIdx % 2) * 14;
+    const yShed = mTop + 14 + (gIdx % 2) * 18;
     if (grp.length === 1) {
       const pt = grp[0];
       const x = scaleX(new Date(pt.d).getTime());
       const shortLbl = pt.type.includes('In the Blue') ? '🔵 Blue' : (pt.type.includes('Out of the Blue') ? '👀 Clear' : '🐍 Shed');
       return `
-        <line x1="${x}" y1="${mTop}" x2="${x}" y2="${mTop + plotH}" stroke="#a855f7" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.65" />
-        <circle cx="${x}" cy="${yShed}" r="3.5" fill="#a855f7" stroke="#0f172a" stroke-width="1" />
-        <text x="${x}" y="${yShed - 5}" text-anchor="middle" fill="#d8b4fe" font-size="8" font-weight="bold">${shortLbl}</text>
+        <line x1="${x}" y1="${mTop}" x2="${x}" y2="${mTop + plotH}" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.65" />
+        <circle cx="${x}" cy="${yShed}" r="4.5" fill="#a855f7" stroke="#0f172a" stroke-width="1.5" />
+        <text x="${x}" y="${yShed - 7}" text-anchor="middle" fill="#d8b4fe" font-size="10" font-weight="bold">${shortLbl}</text>
       `;
     } else {
       const tStart = new Date(grp[0].d).getTime();
@@ -636,35 +645,35 @@ function drawUnifiedChart(logPts: any[]) {
         const isBlue = pt.type.includes('In the Blue');
         const isClear = pt.type.includes('Out of the Blue');
         const fillCol = isBlue ? '#38bdf8' : (isClear ? '#c084fc' : '#a855f7');
-        return `<circle cx="${cx}" cy="${yShed}" r="3.2" fill="${fillCol}" stroke="#0f172a" stroke-width="1" />`;
+        return `<circle cx="${cx}" cy="${yShed}" r="4" fill="${fillCol}" stroke="#0f172a" stroke-width="1.5" />`;
       }).join('');
       return `
         <rect x="${x1}" y="${mTop}" width="${Math.max(2, x2 - x1)}" height="${plotH}" fill="#a855f7" opacity="0.08" />
-        <line x1="${x1}" y1="${yShed}" x2="${x2}" y2="${yShed}" stroke="#c084fc" stroke-width="2" stroke-dasharray="3,2" />
-        <line x1="${x1}" y1="${mTop}" x2="${x1}" y2="${mTop + plotH}" stroke="#38bdf8" stroke-width="1" stroke-dasharray="2,2" opacity="0.5" />
-        <line x1="${x2}" y1="${mTop}" x2="${x2}" y2="${mTop + plotH}" stroke="#a855f7" stroke-width="1" stroke-dasharray="2,2" opacity="0.5" />
+        <line x1="${x1}" y1="${yShed}" x2="${x2}" y2="${yShed}" stroke="#c084fc" stroke-width="2.5" stroke-dasharray="4,3" />
+        <line x1="${x1}" y1="${mTop}" x2="${x1}" y2="${mTop + plotH}" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.5" />
+        <line x1="${x2}" y1="${mTop}" x2="${x2}" y2="${mTop + plotH}" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.5" />
         ${nodes}
-        <text x="${midX}" y="${yShed - 5}" text-anchor="middle" fill="#e9d5ff" font-size="8" font-weight="bold">🐍 Shed (${spanDays}d)</text>
+        <text x="${midX}" y="${yShed - 7}" text-anchor="middle" fill="#e9d5ff" font-size="10" font-weight="bold">🐍 Shed (${spanDays}d)</text>
       `;
     }
   }).join('');
 
   const wCoords = weights.map(pt => ({ x: scaleX(new Date(pt.d).getTime()), y: scaleY(pt.v), v: pt.v }));
-  const wLine = wCoords.length > 1 ? `<polyline fill="none" stroke="#10b981" stroke-width="2.2" points="${wCoords.map(c => `${c.x},${c.y}`).join(' ')}" />` : '';
+  const wLine = wCoords.length > 1 ? `<polyline fill="none" stroke="#10b981" stroke-width="3" points="${wCoords.map(c => `${c.x},${c.y}`).join(' ')}" />` : '';
   const wCircles = wCoords.map(c => `
-    <circle cx="${c.x}" cy="${c.y}" r="3.5" fill="#10b981" stroke="#020617" stroke-width="1" />
-    <text x="${c.x}" y="${c.y - 6}" text-anchor="middle" fill="#a7f3d0" font-size="8.5" font-weight="bold">${c.v}g</text>
+    <circle cx="${c.x}" cy="${c.y}" r="4.5" fill="#10b981" stroke="#020617" stroke-width="1.5" />
+    <text x="${c.x}" y="${c.y - 8}" text-anchor="middle" fill="#a7f3d0" font-size="10" font-weight="bold">${c.v}g</text>
   `).join('');
 
   const pCoords = preys.map(pt => ({ x: scaleX(new Date(pt.d).getTime()), y: scaleY(pt.pVal), v: pt.pVal }));
-  const pLine = pCoords.length > 1 ? `<polyline fill="none" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="2,2" opacity="0.6" points="${pCoords.map(c => `${c.x},${c.y}`).join(' ')}" />` : '';
+  const pLine = pCoords.length > 1 ? `<polyline fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,4" opacity="0.6" points="${pCoords.map(c => `${c.x},${c.y}`).join(' ')}" />` : '';
   const pCircles = pCoords.map(c => `
-    <rect x="${c.x - 3}" y="${c.y - 3}" width="6" height="6" fill="#f59e0b" transform="rotate(45 ${c.x} ${c.y})" />
-    <text x="${c.x}" y="${c.y - 6}" text-anchor="middle" fill="#fcd34d" font-size="8" font-weight="bold">${c.v}g</text>
+    <rect x="${c.x - 4}" y="${c.y - 4}" width="8" height="8" fill="#f59e0b" transform="rotate(45 ${c.x} ${c.y})" />
+    <text x="${c.x}" y="${c.y - 8}" text-anchor="middle" fill="#fcd34d" font-size="10" font-weight="bold">${c.v}g</text>
   `).join('');
 
   return `
-    <svg viewBox="0 0 ${w} ${h}" class="w-full h-full overflow-visible">
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" class="w-full h-full overflow-visible">
       ${yGridSvg}${yAxisLine}${yAxisTitle}${xTicksSvg}${xAxisTitle}${shedSvg}${wLine}${wCircles}${pLine}${pCircles}
     </svg>
   `;

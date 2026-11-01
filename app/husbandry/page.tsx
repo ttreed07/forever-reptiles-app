@@ -72,19 +72,16 @@ export default function HusbandryDashboard() {
       
       let cleanName = 'Size Unknown (No Weight Logged)';
 
-      if (t.rules.hasManualOverride && t.rules.fName) {
-        cleanName = t.rules.fName;
+      // STRICT OVERRIDE CHECK: Read the exact string from the override input
+      if (t.rules.hasManualOverride && t.rules.customFeederSize) {
+        cleanName = t.rules.customFeederSize.trim();
       } 
+      // AUTO CALCULATED: Use the exact fName (e.g. "Medium Rat") rather than parsing targetShort
       else if (t.rules.fName) {
-        cleanName = t.rules.fName;
-      } else if (t.rules.targetShort) {
-         let rawName = t.rules.targetShort;
-         if (rawName.includes('(') && rawName.includes(')')) {
-            cleanName = rawName.split('(')[1].split(')')[0].trim();
-         }
-      }
+        cleanName = t.rules.fName.trim();
+      } 
 
-      if (cleanName.includes('%') || cleanName.includes('Manual')) {
+      if (cleanName.includes('%')) {
         cleanName = 'Size Unknown (No Weight Logged)';
       }
       

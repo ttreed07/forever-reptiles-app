@@ -83,7 +83,7 @@ export default function AnimalProfile() {
       custom_window_max: editForm.custom_window_max,
     }).eq('id', params.id);
     setIsEditingFeeding(false);
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev: number) => prev + 1);
     setIsSavingOverrides(false);
   };
 
@@ -99,7 +99,7 @@ export default function AnimalProfile() {
       custom_substrate: editForm.custom_substrate,
     }).eq('id', params.id);
     setIsEditingEnv(false);
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev: number) => prev + 1);
     setIsSavingOverrides(false);
   };
 
@@ -109,7 +109,7 @@ export default function AnimalProfile() {
   };
 
   const handleLogAdded = () => {
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev: number) => prev + 1);
   };
 
   const handleSaveHealth = async (e: any) => {
@@ -125,7 +125,7 @@ export default function AnimalProfile() {
     }]);
     if (!error) {
       setHealthForm({ record_date: new Date().toISOString().slice(0, 10), record_type: "Vet Visit", clinic_or_doctor: "", diagnosis: "", treatment_plan: "" });
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev: number) => prev + 1);
     }
     setIsSavingHealth(false);
   };
@@ -133,7 +133,7 @@ export default function AnimalProfile() {
   const handleDeleteLog = async (logId: string) => {
     if (confirm("Delete this history log entry?")) {
       await db.from("activity_logs").delete().eq("id", logId);
-      setRefreshKey(prev => prev + 1);
+      setRefreshKey((prev: number) => prev + 1);
     }
   };
 
@@ -285,7 +285,7 @@ export default function AnimalProfile() {
             <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-4 text-xs text-slate-300 relative group pr-10">
               <div dangerouslySetInnerHTML={{ __html: `🎯 ${rules.summary}` }} />
               <button onClick={() => {
-                setEditForm(prev => ({
+                setEditForm((prev: any) => ({
                   ...prev,
                   manual_feeder_override: reptile.manual_feeder_override || false,
                   custom_feeder_size: reptile.custom_feeder_size || '',
@@ -346,7 +346,7 @@ export default function AnimalProfile() {
               <div className="flex justify-between items-center mb-1">
                 <span className="font-bold text-sky-400 block">🌡️ Environmental Standards</span>
                 <button onClick={() => {
-                  setEditForm(prev => ({
+                  setEditForm((prev: any) => ({
                     ...prev,
                     custom_temp_warm_f: reptile.custom_temp_warm_f || rules.tWarm,
                     custom_temp_cool_f: reptile.custom_temp_cool_f || rules.tCool,

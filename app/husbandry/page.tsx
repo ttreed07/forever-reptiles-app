@@ -32,6 +32,9 @@ export default function HusbandryDashboard() {
   const upcoming: any[] = [];
 
   reptiles.forEach(r => {
+    // Skip this animal entirely if alerts are muted
+    if (r.alerts_muted) return;
+
     const rules = getHusbandryRules(r);
     const rLogs = logs.filter(l => l.reptile_id === r.id);
     
@@ -47,7 +50,6 @@ export default function HusbandryDashboard() {
 
     // Check Routine Chores
     if (r.routine_tasks_enabled !== false) {
-      // Look for the most recent log of this type (ignoring quiet clears for this simplified port)
       const wElapsed = daysAgo(rLogs.find(l => l.activity_type === 'Water & Clean')?.activity_date);
       if (wElapsed === null || wElapsed >= rules.waterDays) {
         due.push({ reptile: r, type: 'Water & Clean', icon: '💧', isFeeding: false, title: `${r.name} — Fresh Water & Spot Clean`, sub: `${wElapsed === null ? 'Initial check' : `Last done ${wElapsed}d ago`} (Every ${rules.waterDays}d)`, noteDefault: 'Fresh water & clean completed' });
@@ -70,11 +72,9 @@ export default function HusbandryDashboard() {
       
       let cleanName = 'Size Unknown (No Weight Logged)';
 
-      // STRICT OVERRIDE CHECK: If manual override is active, use it exactly as-is.
       if (t.rules.hasManualOverride && t.rules.fName) {
         cleanName = t.rules.fName;
       } 
-      // AUTO CALCULATED: Strip out the gram weights for the thaw list display
       else if (t.rules.fName) {
         cleanName = t.rules.fName;
       } else if (t.rules.targetShort) {
@@ -119,7 +119,6 @@ export default function HusbandryDashboard() {
         <div className="text-[11px] text-slate-400">Husbandry Dashboard</div>
       </header>
 
-      {/* 2-Tab Main Navigation */}
       <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-2xl border border-slate-800">
         <Link href="/" className="py-2.5 rounded-xl text-xs font-extrabold text-slate-400 text-center hover:text-white transition">🐍 Collection</Link>
         <div className="py-2.5 rounded-xl text-xs font-extrabold bg-emerald-500 text-slate-950 flex items-center justify-center gap-1.5 transition">
@@ -138,7 +137,6 @@ export default function HusbandryDashboard() {
             <button onClick={() => setActiveTab('history')} className={`px-3 py-1.5 text-xs font-bold rounded-lg border ${activeTab === 'history' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>📋 History</button>
           </div>
 
-          {/* FEEDING TAB */}
           {activeTab === 'feeding' && (
             <div className="space-y-5 animate-in fade-in">
               <button onClick={generateThawList} className="w-full bg-slate-800 border border-amber-500/40 text-amber-300 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 hover:bg-slate-700 transition shadow">
@@ -172,7 +170,6 @@ export default function HusbandryDashboard() {
             </div>
           )}
 
-          {/* CHORES TAB */}
           {activeTab === 'chores' && (
             <div className="space-y-5 animate-in fade-in">
               <div>
@@ -188,7 +185,6 @@ export default function HusbandryDashboard() {
             </div>
           )}
 
-          {/* HISTORY TAB */}
           {activeTab === 'history' && (
             <div className="space-y-2 animate-in fade-in">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Platform Activity</h2>
@@ -214,7 +210,6 @@ export default function HusbandryDashboard() {
         </section>
       )}
 
-      {/* Thaw List Modal */}
       {thawList && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
           <div className="bg-slate-900 border border-amber-500/40 w-full max-w-sm rounded-2xl p-5 space-y-4 shadow-2xl">
@@ -240,7 +235,6 @@ export default function HusbandryDashboard() {
   );
 }
 
-// Simple Task Card Component
 function TaskCard({ task, isUpcoming = false, onComplete }: any) {
   const borderCls = isUpcoming ? 'border-sky-500/30 bg-slate-900/90' : 'border-slate-800 bg-slate-900';
   const btnCls = isUpcoming ? 'bg-sky-400 active:bg-sky-500 text-slate-950' : 'bg-emerald-500 active:bg-emerald-600 text-slate-950';

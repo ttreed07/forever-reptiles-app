@@ -18,7 +18,11 @@ export default function Home() {
   
   const [loading, setLoading] = useState(true);
 
-  // 1. Check for user login
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+  const [filterSpecies, setFilterSpecies] = useState("All");
+
   useEffect(() => {
     db.auth.getSession().then(({ data: { session } }) => setSession(session));
     const { data: { subscription } } = db.auth.onAuthStateChange((_event, session) => {
@@ -27,7 +31,6 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // 2. Fetch all data if logged in
   useEffect(() => {
     async function loadDashboardData() {
       if (!session) {
@@ -36,7 +39,6 @@ export default function Home() {
       }
       setLoading(true);
       
-      // Run all queries simultaneously for speed
       const [profRes, memRes, repRes, rulesRes, prefRes] = await Promise.all([
         db.from("user_profiles").select("*").eq("id", session.user.id).single(),
         db.from("account_members").select("*").order("created_at"),
@@ -49,7 +51,6 @@ export default function Home() {
       if (memRes.data && memRes.data.length > 0) {
         setMembers(memRes.data.map((m: any) => m.name));
       } else {
-        // Fallback if no members table exists yet
         setMembers(["Trevor", "Hannah", "Oakley", "Bryce", "Adeline"]);
       }
       
@@ -64,6 +65,28 @@ export default function Home() {
 
   if (!session) return <Auth />;
 
+  const uniqueSpecies = Array.from(new Set(reptiles.map(r => r.species))).filter(Boolean);
+
+  const filteredReptiles = reptiles
+    .filter(r => {
+      const matchesSearch = (r.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            (r.morph || '').toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSpecies = filterSpecies === "All" || r.species === filterSpecies;
+      return matchesSearch && matchesSpecies;
+    })
+    .sort((a, b) => {
+      if (sortBy === "name") return (a.name || '').localeCompare(b.name || '');
+      if (sortBy === "weight") return (b.current_weight_g || 0) - (a.current_weight_g || 0);
+      if (sortBy === "upcoming") {
+        const rulesA = getHusbandryRules(a, speciesRules, userSpeciesPrefs);
+        const rulesB = getHusbandryRules(b, speciesRules, userSpeciesPrefs);
+        const dA = daysAgo(a.last_fed) ?? 999;
+        const dB = daysAgo(b.last_fed) ?? 999;
+        return (rulesA.feedDays - dA) - (rulesB.feedDays - dB);
+      }
+      return 0;
+    });
+
   return (
     <>
       <Header 
@@ -74,7 +97,6 @@ export default function Home() {
       />
 
       <main className="p-4 space-y-4 max-w-2xl mx-auto pb-24">
-        {/* 2-Tab Main Navigation */}
         <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-2xl border border-slate-800 mb-4">
           <div className="py-2.5 rounded-xl text-xs font-extrabold bg-emerald-500 text-slate-950 flex items-center justify-center gap-1.5 transition">
             🐍 Collection
@@ -92,6 +114,38 @@ export default function Home() {
             </Link>
           </div>
 
+          {/* Search and Filter Bar */}
+          {!loading && reptiles.length > 0 && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-col sm:flex-row gap-2 shadow-sm">
+              <input 
+                type="text" 
+                placeholder="Search names or morphs..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+              />
+              <div className="flex gap-2">
+                <select 
+                  value={filterSpecies} 
+                  onChange={e => setFilterSpecies(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="All">All Species</option>
+                  {uniqueSpecies.map((s: any) => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <select 
+                  value={sortBy} 
+                  onChange={e => setSortBy(e.target.value)}
+                  className="bg-slate-950 border border-slate-700 rounded-lg px-2 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="name">Sort: A-Z</option>
+                  <option value="upcoming">Sort: Feed Due</option>
+                  <option value="weight">Sort: Heaviest</option>
+                </select>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className="text-center text-slate-500 text-sm py-12">Syncing with database...</div>
           ) : reptiles.length === 0 ? (
@@ -100,13 +154,16 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3.5">
-              {reptiles.map((r) => {
-                // Now passing the database rules into the math engine!
+              {filteredReptiles.map((r) => {
                 const rules = getHusbandryRules(r, speciesRules, userSpeciesPrefs);
                 const d = daysAgo(r.last_fed);
                 
                 let statusText = 'No Feed Logged', badgeCls = 'bg-amber-500/90 text-slate-950 border-amber-400';
-                if (d !== null) {
+                
+                if (r.alerts_muted) {
+                  statusText = '🔕 Alerts Muted';
+                  badgeCls = 'bg-slate-800/95 text-slate-400 border-slate-700';
+                } else if (d !== null) {
                   if (d >= rules.feedDays) { statusText = `Due (${d}d ago)`; badgeCls = 'bg-amber-500/95 text-slate-950 border-amber-300'; }
                   else if (d >= rules.minWin) { statusText = `Window Open (${d}d ago)`; badgeCls = 'bg-sky-400/95 text-slate-950 border-sky-300'; }
                   else { statusText = d === 0 ? 'Fed Today' : `Last fed ${d}d ago`; badgeCls = 'bg-slate-900/85 text-emerald-300 border-emerald-500/40'; }

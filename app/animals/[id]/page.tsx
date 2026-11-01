@@ -29,6 +29,12 @@ export default function AnimalProfile() {
   const [showFeeds, setShowFeeds] = useState(true);
   const [showSheds, setShowSheds] = useState(true);
 
+  // Inline Editing State (Husbandry Tab)
+  const [isEditingFeeding, setIsEditingFeeding] = useState(false);
+  const [isEditingEnv, setIsEditingEnv] = useState(false);
+  const [isSavingOverrides, setIsSavingOverrides] = useState(false);
+  const [editForm, setEditForm] = useState<any>({});
+
   // Health Form State
   const [healthForm, setHealthForm] = useState({
     record_date: new Date().toISOString().slice(0, 10),
@@ -58,34 +64,44 @@ export default function AnimalProfile() {
   const rules = getHusbandryRules(reptile);
   const showBreeding = reptile.is_breeder || reptile.breeder_mode;
   
-  // Compile all photos for Lightbox
-  const allPhotos: string[] = [];
-  if (reptile.photo_url) allPhotos.push(reptile.photo_url);
-  if (reptile.gallery_urls && reptile.gallery_urls.length > 0) {
-    allPhotos.push(...reptile.gallery_urls);
-  }
-  
-  // Process Chart Data based on Toggles and Date Range
-  const now = new Date();
-  let cutoffDate = new Date("2000-01-01").getTime();
-  if (chartRange === "3M") cutoffDate = new Date(now.setMonth(now.getMonth() - 3)).getTime();
-  if (chartRange === "6M") cutoffDate = new Date(now.setMonth(now.getMonth() - 6)).getTime();
-  if (chartRange === "1Y") cutoffDate = new Date(now.setFullYear(now.getFullYear() - 1)).getTime();
+  // Apply local environmental overrides over base rules
+  const envWarm = reptile.custom_temp_warm_f || rules.tWarm;
+  const envCool = reptile.custom_temp_cool_f || rules.tCool;
+  const envBask = reptile.custom_temp_basking_f || rules.tBasking;
+  const envHMin = reptile.custom_humidity_min || rules.hMin;
+  const envHMax = reptile.custom_humidity_max || rules.hMax;
+  const envEnc = reptile.custom_enclosure || rules.enc;
+  const envSub = reptile.custom_substrate || rules.sub;
 
-  const filteredLogs = logs.filter(l => {
-    const logTime = new Date(l.activity_date || l.created_at).getTime();
-    return logTime >= cutoffDate;
-  });
+  const handleSaveFeedingOverrides = async () => {
+    setIsSavingOverrides(true);
+    await db.from('reptiles').update({
+      manual_feeder_override: editForm.manual_feeder_override,
+      custom_feeder_size: editForm.custom_feeder_size,
+      feed_interval_days: editForm.feed_interval_days,
+      custom_window_min: editForm.custom_window_min,
+      custom_window_max: editForm.custom_window_max,
+    }).eq('id', params.id);
+    setIsEditingFeeding(false);
+    setRefreshKey(prev => prev + 1);
+    setIsSavingOverrides(false);
+  };
 
-  const chartPts = filteredLogs
-    .filter(l => {
-      if (!showWeight && l.activity_type === 'Weight') return false;
-      if (!showFeeds && l.activity_type === 'Feeding') return false;
-      if (!showSheds && l.activity_type.includes('Shed')) return false;
-      return l.activity_type === 'Weight' || l.activity_type === 'Feeding' || l.activity_type.includes('Shed');
-    })
-    .map(l => ({ d: l.activity_date || l.created_at, v: l.value_numeric, pVal: l.prey_weight_g, type: l.activity_type }))
-    .sort((a, b) => new Date(a.d).getTime() - new Date(b.d).getTime());
+  const handleSaveEnvOverrides = async () => {
+    setIsSavingOverrides(true);
+    await db.from('reptiles').update({
+      custom_temp_warm_f: editForm.custom_temp_warm_f,
+      custom_temp_cool_f: editForm.custom_temp_cool_f,
+      custom_temp_basking_f: editForm.custom_temp_basking_f,
+      custom_humidity_min: editForm.custom_humidity_min,
+      custom_humidity_max: editForm.custom_humidity_max,
+      custom_enclosure: editForm.custom_enclosure,
+      custom_substrate: editForm.custom_substrate,
+    }).eq('id', params.id);
+    setIsEditingEnv(false);
+    setRefreshKey(prev => prev + 1);
+    setIsSavingOverrides(false);
+  };
 
   const openModal = (action = "Feeding") => {
     setModalAction(action);
@@ -120,6 +136,28 @@ export default function AnimalProfile() {
       setRefreshKey(prev => prev + 1);
     }
   };
+
+  // Compile photos and process charts
+  const allPhotos: string[] = [];
+  if (reptile.photo_url) allPhotos.push(reptile.photo_url);
+  if (reptile.gallery_urls && reptile.gallery_urls.length > 0) allPhotos.push(...reptile.gallery_urls);
+  
+  const now = new Date();
+  let cutoffDate = new Date("2000-01-01").getTime();
+  if (chartRange === "3M") cutoffDate = new Date(now.setMonth(now.getMonth() - 3)).getTime();
+  if (chartRange === "6M") cutoffDate = new Date(now.setMonth(now.getMonth() - 6)).getTime();
+  if (chartRange === "1Y") cutoffDate = new Date(now.setFullYear(now.getFullYear() - 1)).getTime();
+
+  const chartPts = logs
+    .filter(l => new Date(l.activity_date || l.created_at).getTime() >= cutoffDate)
+    .filter(l => {
+      if (!showWeight && l.activity_type === 'Weight') return false;
+      if (!showFeeds && l.activity_type === 'Feeding') return false;
+      if (!showSheds && l.activity_type.includes('Shed')) return false;
+      return l.activity_type === 'Weight' || l.activity_type === 'Feeding' || l.activity_type.includes('Shed');
+    })
+    .map(l => ({ d: l.activity_date || l.created_at, v: l.value_numeric, pVal: l.prey_weight_g, type: l.activity_type }))
+    .sort((a, b) => new Date(a.d).getTime() - new Date(b.d).getTime());
 
   return (
     <main className="p-4 space-y-4 max-w-2xl mx-auto pb-24">
@@ -178,8 +216,6 @@ export default function AnimalProfile() {
       {activeTab === 'overview' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
-            
-            {/* Chart Control Bar */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
               <div>
                 <span className="text-xs font-bold text-slate-200 block">📈 Lifecycle Growth & Prey Curve</span>
@@ -198,7 +234,6 @@ export default function AnimalProfile() {
                 </select>
               </div>
             </div>
-
             <div 
               className="w-full h-52 flex items-center justify-center text-xs text-slate-500 pt-2 border-t border-slate-800/50 mt-2"
               dangerouslySetInnerHTML={{ __html: drawUnifiedChart(chartPts) }}
@@ -209,18 +244,131 @@ export default function AnimalProfile() {
 
       {/* Tab Content: HUSBANDRY */}
       {activeTab === 'husbandry' && (
-        <div className="space-y-3 animate-in fade-in duration-200">
-          <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-3 text-xs text-slate-300" dangerouslySetInnerHTML={{ __html: `🎯 ${rules.summary}` }} />
+        <div className="space-y-4 animate-in fade-in duration-200">
           
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-1.5 text-xs">
-            <span className="font-bold text-sky-400 block mb-2">🌡️ Environmental Standards</span>
-            <div className="grid grid-cols-2 gap-2 text-slate-300">
-              <div className="bg-slate-900 p-2 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px]">Thermal Gradient</span><strong>{rules.tWarm}°F</strong> warm • <strong>{rules.tCool}°F</strong> cool<br/>(Bask: <strong>{rules.tBasking}°F</strong>)</div>
-              <div className="bg-slate-900 p-2 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px]">Target Humidity</span><strong>{rules.hMin}% – {rules.hMax}%</strong></div>
-              <div className="col-span-2 bg-slate-900 p-2 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px]">Recommended Footprint</span>{rules.enc}</div>
-              <div className="col-span-2 bg-slate-900 p-2 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px]">Recommended Substrate</span>{rules.sub}</div>
+          {/* FEEDING EDITOR */}
+          {isEditingFeeding ? (
+            <div className="bg-slate-950 border border-amber-500/50 rounded-xl p-4 space-y-3">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-bold text-amber-400 text-sm">Edit Feeding Rules</span>
+                <button onClick={() => setIsEditingFeeding(false)} className="text-slate-400 hover:text-white text-lg">&times;</button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="col-span-2 flex items-center justify-between bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                  <span className="font-bold text-slate-300">Manual Feeder Override</span>
+                  <input type="checkbox" checked={editForm.manual_feeder_override || false} onChange={e => setEditForm({...editForm, manual_feeder_override: e.target.checked})} className="accent-amber-500 w-4 h-4" />
+                </div>
+                {editForm.manual_feeder_override && (
+                  <div className="col-span-2">
+                    <label className="block text-[10px] text-slate-400 mb-1">Target Prey Size / Name</label>
+                    <input type="text" value={editForm.custom_feeder_size || ''} onChange={e => setEditForm({...editForm, custom_feeder_size: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white outline-none focus:border-amber-500" placeholder="e.g. 14-17g (Med Mouse)" />
+                  </div>
+                )}
+                <div className="col-span-2">
+                  <label className="block text-[10px] text-slate-400 mb-1">Target Days (Interval)</label>
+                  <input type="number" value={editForm.feed_interval_days || ''} onChange={e => setEditForm({...editForm, feed_interval_days: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white outline-none focus:border-amber-500" />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Window Min (Days)</label>
+                  <input type="number" value={editForm.custom_window_min || ''} onChange={e => setEditForm({...editForm, custom_window_min: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white outline-none focus:border-amber-500" />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Window Max (Days)</label>
+                  <input type="number" value={editForm.custom_window_max || ''} onChange={e => setEditForm({...editForm, custom_window_max: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white outline-none focus:border-amber-500" />
+                </div>
+              </div>
+              <button onClick={handleSaveFeedingOverrides} disabled={isSavingOverrides} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs mt-2 transition shadow">
+                {isSavingOverrides ? 'Saving...' : 'Save Feeding Rules'}
+              </button>
             </div>
-          </div>
+          ) : (
+            <div className="bg-slate-950 border border-emerald-500/30 rounded-xl p-4 text-xs text-slate-300 relative group pr-10">
+              <div dangerouslySetInnerHTML={{ __html: `🎯 ${rules.summary}` }} />
+              <button onClick={() => {
+                setEditForm(prev => ({
+                  ...prev,
+                  manual_feeder_override: reptile.manual_feeder_override || false,
+                  custom_feeder_size: reptile.custom_feeder_size || '',
+                  feed_interval_days: reptile.feed_interval_days || rules.feedDays,
+                  custom_window_min: reptile.custom_window_min || rules.minWin,
+                  custom_window_max: reptile.custom_window_max || rules.maxWin,
+                }));
+                setIsEditingFeeding(true);
+              }} className="absolute top-3 right-3 text-slate-500 hover:text-amber-400 transition bg-slate-900 p-1.5 rounded-lg border border-slate-800 hover:border-amber-500/50">
+                ✏️
+              </button>
+            </div>
+          )}
+
+          {/* ENVIRONMENTAL EDITOR */}
+          {isEditingEnv ? (
+            <div className="bg-slate-950 border border-sky-500/50 rounded-xl p-4 space-y-3">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-bold text-sky-400 text-sm">Edit Environment Standards</span>
+                <button onClick={() => setIsEditingEnv(false)} className="text-slate-400 hover:text-white text-lg">&times;</button>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-xs">
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Warm °F</label>
+                  <input type="number" value={editForm.custom_temp_warm_f || ''} onChange={e => setEditForm({...editForm, custom_temp_warm_f: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white outline-none focus:border-sky-500" />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Cool °F</label>
+                  <input type="number" value={editForm.custom_temp_cool_f || ''} onChange={e => setEditForm({...editForm, custom_temp_cool_f: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white outline-none focus:border-sky-500" />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Basking °F</label>
+                  <input type="number" value={editForm.custom_temp_basking_f || ''} onChange={e => setEditForm({...editForm, custom_temp_basking_f: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white outline-none focus:border-sky-500" />
+                </div>
+                <div className="col-span-1">
+                  <label className="block text-[10px] text-slate-400 mb-1">Min Hum %</label>
+                  <input type="number" value={editForm.custom_humidity_min || ''} onChange={e => setEditForm({...editForm, custom_humidity_min: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white outline-none focus:border-sky-500" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-[10px] text-slate-400 mb-1">Max Hum %</label>
+                  <input type="number" value={editForm.custom_humidity_max || ''} onChange={e => setEditForm({...editForm, custom_humidity_max: Number(e.target.value)})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white outline-none focus:border-sky-500" />
+                </div>
+                <div className="col-span-3">
+                  <label className="block text-[10px] text-slate-400 mb-1">Enclosure Setup</label>
+                  <input type="text" value={editForm.custom_enclosure || ''} onChange={e => setEditForm({...editForm, custom_enclosure: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white outline-none focus:border-sky-500" />
+                </div>
+                <div className="col-span-3">
+                  <label className="block text-[10px] text-slate-400 mb-1">Substrate</label>
+                  <input type="text" value={editForm.custom_substrate || ''} onChange={e => setEditForm({...editForm, custom_substrate: e.target.value})} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-white outline-none focus:border-sky-500" />
+                </div>
+              </div>
+              <button onClick={handleSaveEnvOverrides} disabled={isSavingOverrides} className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-2.5 rounded-lg text-xs mt-2 transition shadow">
+                {isSavingOverrides ? 'Saving...' : 'Save Environment Rules'}
+              </button>
+            </div>
+          ) : (
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5 text-xs relative group">
+              <div className="flex justify-between items-center mb-1">
+                <span className="font-bold text-sky-400 block">🌡️ Environmental Standards</span>
+                <button onClick={() => {
+                  setEditForm(prev => ({
+                    ...prev,
+                    custom_temp_warm_f: reptile.custom_temp_warm_f || rules.tWarm,
+                    custom_temp_cool_f: reptile.custom_temp_cool_f || rules.tCool,
+                    custom_temp_basking_f: reptile.custom_temp_basking_f || rules.tBasking,
+                    custom_humidity_min: reptile.custom_humidity_min || rules.hMin,
+                    custom_humidity_max: reptile.custom_humidity_max || rules.hMax,
+                    custom_enclosure: reptile.custom_enclosure || rules.enc,
+                    custom_substrate: reptile.custom_substrate || rules.sub,
+                  }));
+                  setIsEditingEnv(true);
+                }} className="absolute top-3 right-3 text-slate-500 hover:text-sky-400 transition bg-slate-900 p-1.5 rounded-lg border border-slate-800 hover:border-sky-500/50">
+                  ✏️
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-slate-300 pt-1">
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Thermal Gradient</span><strong>{envWarm}°F</strong> warm • <strong>{envCool}°F</strong> cool<br/>(Bask: <strong>{envBask}°F</strong>)</div>
+                <div className="bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Target Humidity</span><strong>{envHMin}% – {envHMax}%</strong></div>
+                <div className="col-span-2 bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Recommended Footprint</span>{envEnc}</div>
+                <div className="col-span-2 bg-slate-900 p-2.5 rounded-lg border border-slate-800"><span className="text-slate-400 block text-[10px] mb-0.5">Recommended Substrate</span>{envSub}</div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -382,9 +530,6 @@ export default function AnimalProfile() {
   );
 }
 
-// =========================================================================
-// SVG CHART GENERATOR
-// =========================================================================
 function drawUnifiedChart(logPts: any[]) {
   const weights = logPts.filter(l => l.type === 'Weight' && l.v !== null && !isNaN(Number(l.v)));
   const preys = logPts.filter(l => l.type === 'Feeding' && l.pVal !== null && !isNaN(Number(l.pVal)));

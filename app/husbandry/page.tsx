@@ -67,12 +67,27 @@ export default function HusbandryDashboard() {
   const generateThawList = () => {
     const feeders: Record<string, number> = {};
     [...feedsDue, ...feedsUp].filter(t => t.rules.isSnake).forEach(t => {
-      let rawName = t.rules.fName || t.rules.targetShort || 'Custom / Unweighed';
-      let cleanName = rawName;
-      if (!t.rules.hasManualOverride && rawName.includes('(') && rawName.includes(')')) {
-        cleanName = rawName.split('(')[1].split(')')[0].trim();
+      
+      let cleanName = 'Size Unknown (No Weight Logged)';
+
+      // STRICT OVERRIDE CHECK: If manual override is active, use it exactly as-is.
+      if (t.rules.hasManualOverride && t.rules.fName) {
+        cleanName = t.rules.fName;
+      } 
+      // AUTO CALCULATED: Strip out the gram weights for the thaw list display
+      else if (t.rules.fName) {
+        cleanName = t.rules.fName;
+      } else if (t.rules.targetShort) {
+         let rawName = t.rules.targetShort;
+         if (rawName.includes('(') && rawName.includes(')')) {
+            cleanName = rawName.split('(')[1].split(')')[0].trim();
+         }
       }
-      if (cleanName.includes('%') || cleanName.includes('Manual')) cleanName = 'Size Unknown (No Weight Logged)';
+
+      if (cleanName.includes('%') || cleanName.includes('Manual')) {
+        cleanName = 'Size Unknown (No Weight Logged)';
+      }
+      
       feeders[cleanName] = (feeders[cleanName] || 0) + 1;
     });
     setThawList(Object.entries(feeders).map(([name, count]) => ({ name, count })).sort((a,b) => b.count - a.count));

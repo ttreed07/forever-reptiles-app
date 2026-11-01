@@ -2,24 +2,38 @@
 
 import { useState, useEffect } from "react";
 import { getCustomFeeders } from "../lib/husbandry";
+import { db } from "../lib/supabase";
 
 export default function SettingsModal({ isOpen, onClose, members }: { isOpen: boolean, onClose: () => void, members: string[] }) {
   const [isEditingFeeders, setIsEditingFeeders] = useState(false);
   const [feeders, setFeeders] = useState<{n: string, m: number}[]>([]);
 
-  // Load the current feeders from local storage/husbandry lib when modal opens
+  const [username, setUsername] = useState("");
+  const [originalUsername, setOriginalUsername] = useState("");
+  const [acknowledgeWarning, setAcknowledgeWarning] = useState(false);
+  const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       setFeeders(getCustomFeeders());
       setIsEditingFeeders(false);
+
+      db.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          db.from("user_profiles").select("username").eq("id", data.session.user.id).single().then((res) => {
+            if (res.data) {
+              setUsername(res.data.username || "");
+              setOriginalUsername(res.data.username || "");
+            }
+          });
+        }
+      });
     }
   }, [isOpen]);
 
   const handleSaveFeeders = () => {
-    // Save to local storage for the husbandry engine to read
     localStorage.setItem('fr_feeders', JSON.stringify(feeders));
     setIsEditingFeeders(false);
-    // Force a quick page refresh to instantly apply the new breakpoints across the app
     window.location.reload(); 
   };
 
@@ -28,6 +42,30 @@ export default function SettingsModal({ isOpen, onClose, members }: { isOpen: bo
       localStorage.removeItem('fr_feeders');
       setFeeders(getCustomFeeders());
     }
+  };
+
+  const handleUpdateUsername = async () => {
+    if (username === originalUsername || !acknowledgeWarning) return;
+    setIsUpdatingUsername(true);
+    const { data } = await db.auth.getSession();
+    
+    if (data.session) {
+      const cleanUsername = username.toLowerCase().replace(/[^a-z0-9_]/g, '');
+
+      await db.from("user_profiles").update({ username: cleanUsername }).eq("id", data.session.user.id);
+
+      if (originalUsername) {
+        await db.from("reptiles").update({ owner_username: cleanUsername }).eq("owner_username", originalUsername);
+      } else {
+        await db.from("reptiles").update({ owner_username: cleanUsername }).is("owner_username", null);
+      }
+
+      setOriginalUsername(cleanUsername);
+      setUsername(cleanUsername);
+      setAcknowledgeWarning(false);
+      alert("Public URL handle successfully updated!");
+    }
+    setIsUpdatingUsername(false);
   };
 
   if (!isOpen) return null;
@@ -50,6 +88,45 @@ export default function SettingsModal({ isOpen, onClose, members }: { isOpen: bo
             ))}
           </div>
         </div>
+
+        {/* Public Profile URL Settings */}
+        <div className="pt-3 border-t border-slate-800">
+          <h4 className="text-[11px] font-bold text-sky-400 mb-2">🌐 Public Profile URL</h4>
+          <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-3">
+            <div>
+              <label className="block text-[10px] text-slate-400 mb-1">Public Handle (app.foreverreptiles.com/collection/handle)</label>
+              <input 
+                type="text" 
+                value={username} 
+                onChange={e => setUsername(e.target.value)} 
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500" 
+              />
+            </div>
+            
+            {username !== originalUsername && (
+              <div className="space-y-2 animate-in fade-in duration-200">
+                <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/30 p-2 rounded-lg">
+                  <input 
+                    type="checkbox" 
+                    checked={acknowledgeWarning} 
+                    onChange={e => setAcknowledgeWarning(e.target.checked)} 
+                    className="mt-0.5 accent-red-500 shrink-0" 
+                  />
+                  <p className="text-[10px] text-red-400 leading-tight">
+                    <strong>Warning:</strong> Changing your handle will instantly break any previously shared collection links or printed QR codes.
+                  </p>
+                </div>
+                <button 
+                  onClick={handleUpdateUsername}
+                  disabled={!acknowledgeWarning || isUpdatingUsername}
+                  className="w-full bg-sky-500 hover:bg-sky-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-950 font-bold py-2 rounded-lg text-xs transition"
+                >
+                  {isUpdatingUsername ? "Updating..." : "Confirm & Update Handle"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         
         <div className="pt-3 border-t border-slate-800">
           <h4 className="text-[11px] font-bold text-emerald-400 mb-2">⚙️ App Preferences</h4>
@@ -63,36 +140,14 @@ export default function SettingsModal({ isOpen, onClose, members }: { isOpen: bo
               <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
                 {feeders.map((f, i) => (
                   <div key={i} className="flex gap-2 items-center">
-                    <input 
-                      type="text" 
-                      value={f.n} 
-                      onChange={e => { const newF = [...feeders]; newF[i].n = e.target.value; setFeeders(newF); }} 
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500" 
-                      placeholder="Feeder Name" 
-                    />
-                    <input 
-                      type="number" 
-                      value={f.m} 
-                      onChange={e => { const newF = [...feeders]; newF[i].m = Number(e.target.value); setFeeders(newF); }} 
-                      className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-right focus:outline-none focus:border-emerald-500" 
-                      placeholder="Max g" 
-                    />
+                    <input type="text" value={f.n} onChange={e => { const newF = [...feeders]; newF[i].n = e.target.value; setFeeders(newF); }} className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500" placeholder="Feeder Name" />
+                    <input type="number" value={f.m} onChange={e => { const newF = [...feeders]; newF[i].m = Number(e.target.value); setFeeders(newF); }} className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-white text-right focus:outline-none focus:border-emerald-500" placeholder="Max g" />
                     <span className="text-xs text-slate-400 font-bold shrink-0">g</span>
-                    <button 
-                      onClick={() => { const newF = feeders.filter((_, idx) => idx !== i); setFeeders(newF); }} 
-                      className="text-red-400 hover:bg-red-400/20 font-bold px-2 py-1 rounded-lg transition shrink-0"
-                    >
-                      &times;
-                    </button>
+                    <button onClick={() => { const newF = feeders.filter((_, idx) => idx !== i); setFeeders(newF); }} className="text-red-400 hover:bg-red-400/20 font-bold px-2 py-1 rounded-lg transition shrink-0">&times;</button>
                   </div>
                 ))}
               </div>
-              <button 
-                onClick={() => setFeeders([...feeders, {n: '', m: 0}])} 
-                className="text-[11px] text-emerald-400 font-bold w-full text-left px-1 hover:underline"
-              >
-                + Add Feeder Size
-              </button>
+              <button onClick={() => setFeeders([...feeders, {n: '', m: 0}])} className="text-[11px] text-emerald-400 font-bold w-full text-left px-1 hover:underline">+ Add Feeder Size</button>
               <div className="flex gap-2 pt-2 border-t border-slate-800">
                 <button onClick={() => setIsEditingFeeders(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 rounded-lg text-xs transition">Cancel</button>
                 <button onClick={handleSaveFeeders} className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2 rounded-lg text-xs shadow transition">Save Sizes</button>
@@ -103,16 +158,6 @@ export default function SettingsModal({ isOpen, onClose, members }: { isOpen: bo
               🐁 Configure Custom Feeder Sizes
             </button>
           )}
-          
-          <p className="text-[10px] text-slate-400 mb-2">Species feeding rule overrides will be managed here.</p>
-        </div>
-        
-        <div className="pt-3 border-t border-slate-800 space-y-2">
-          <h4 className="text-[11px] font-bold text-sky-400">📦 Data Backup & Export</h4>
-          <div className="grid grid-cols-2 gap-2">
-            <button className="bg-slate-800 hover:bg-slate-700 text-sky-300 font-bold py-2 rounded-xl text-xs transition">⬇️ Export JSON Backup</button>
-            <button className="bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold py-2 rounded-xl text-xs transition">📊 Export CSV Data</button>
-          </div>
         </div>
       </div>
     </div>

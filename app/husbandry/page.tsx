@@ -119,12 +119,18 @@ export default function HusbandryDashboard() {
         <div className="text-[11px] text-slate-400">Husbandry Dashboard</div>
       </header>
 
-      <div className="grid grid-cols-2 bg-slate-900 p-1 rounded-2xl border border-slate-800">
-        <Link href="/" className="py-2.5 rounded-xl text-xs font-extrabold text-slate-400 text-center hover:text-white transition">🐍 Collection</Link>
+      {/* 3-Tab Main Navigation */}
+      <div className="grid grid-cols-3 bg-slate-900 p-1 rounded-2xl border border-slate-800 mb-4">
+        <Link href="/" className="py-2.5 rounded-xl text-xs font-extrabold text-slate-400 text-center hover:text-white transition">
+          🐍 Collection
+        </Link>
         <div className="py-2.5 rounded-xl text-xs font-extrabold bg-emerald-500 text-slate-950 flex items-center justify-center gap-1.5 transition">
           📋 Husbandry
           {due.length > 0 && <span className="bg-amber-500 text-slate-950 text-[10px] px-1.5 py-0.5 rounded-full font-black">{due.length}</span>}
         </div>
+        <Link href="/analytics" className="py-2.5 rounded-xl text-xs font-extrabold text-slate-400 text-center hover:text-white transition">
+          📈 Analytics
+        </Link>
       </div>
 
       {loading && <div className="text-center text-slate-500 text-sm py-10">Calculating schedules...</div>}

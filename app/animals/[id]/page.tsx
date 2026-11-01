@@ -23,6 +23,12 @@ export default function AnimalProfile() {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
+  // Chart Filtering State
+  const [chartRange, setChartRange] = useState("6M");
+  const [showWeight, setShowWeight] = useState(true);
+  const [showFeeds, setShowFeeds] = useState(true);
+  const [showSheds, setShowSheds] = useState(true);
+
   // Health Form State
   const [healthForm, setHealthForm] = useState({
     record_date: new Date().toISOString().slice(0, 10),
@@ -59,8 +65,25 @@ export default function AnimalProfile() {
     allPhotos.push(...reptile.gallery_urls);
   }
   
-  const chartPts = logs
-    .filter(l => l.activity_type === 'Weight' || l.activity_type === 'Feeding' || l.activity_type.includes('Shed'))
+  // Process Chart Data based on Toggles and Date Range
+  const now = new Date();
+  let cutoffDate = new Date("2000-01-01").getTime();
+  if (chartRange === "3M") cutoffDate = new Date(now.setMonth(now.getMonth() - 3)).getTime();
+  if (chartRange === "6M") cutoffDate = new Date(now.setMonth(now.getMonth() - 6)).getTime();
+  if (chartRange === "1Y") cutoffDate = new Date(now.setFullYear(now.getFullYear() - 1)).getTime();
+
+  const filteredLogs = logs.filter(l => {
+    const logTime = new Date(l.activity_date || l.created_at).getTime();
+    return logTime >= cutoffDate;
+  });
+
+  const chartPts = filteredLogs
+    .filter(l => {
+      if (!showWeight && l.activity_type === 'Weight') return false;
+      if (!showFeeds && l.activity_type === 'Feeding') return false;
+      if (!showSheds && l.activity_type.includes('Shed')) return false;
+      return l.activity_type === 'Weight' || l.activity_type === 'Feeding' || l.activity_type.includes('Shed');
+    })
     .map(l => ({ d: l.activity_date || l.created_at, v: l.value_numeric, pVal: l.prey_weight_g, type: l.activity_type }))
     .sort((a, b) => new Date(a.d).getTime() - new Date(b.d).getTime());
 
@@ -155,19 +178,29 @@ export default function AnimalProfile() {
       {activeTab === 'overview' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-3">
-            <div className="flex flex-wrap justify-between items-center gap-2 mb-1">
+            
+            {/* Chart Control Bar */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
               <div>
                 <span className="text-xs font-bold text-slate-200 block">📈 Lifecycle Growth & Prey Curve</span>
-                <span className="text-[10px] text-slate-400">Proportional Weight (g), Prey Weight (g) & Shed Duration</span>
+                <div className="flex gap-2 mt-1">
+                  <button onClick={() => setShowWeight(!showWeight)} className={`text-[10px] px-2 py-0.5 rounded border ${showWeight ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800 transition'}`}>Weight</button>
+                  <button onClick={() => setShowFeeds(!showFeeds)} className={`text-[10px] px-2 py-0.5 rounded border ${showFeeds ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800 transition'}`}>Feeds</button>
+                  <button onClick={() => setShowSheds(!showSheds)} className={`text-[10px] px-2 py-0.5 rounded border ${showSheds ? 'bg-purple-500/20 text-purple-400 border-purple-500/40' : 'text-slate-500 border-slate-700 hover:bg-slate-800 transition'}`}>Sheds</button>
+                </div>
               </div>
-              <div className="flex gap-1.5">
-                <button onClick={() => openModal("Weight")} className="text-[10px] text-emerald-400 font-semibold border border-slate-800 px-2 py-1 rounded-lg hover:bg-slate-800">+ Weigh</button>
-                <button onClick={() => openModal("Feeding")} className="text-[10px] text-amber-400 font-semibold border border-slate-800 px-2 py-1 rounded-lg hover:bg-slate-800">+ Feed</button>
-                <button onClick={() => openModal("Shed: In the Blue")} className="text-[10px] text-purple-300 font-semibold border border-slate-800 px-2 py-1 rounded-lg hover:bg-slate-800">+ Shed</button>
+              <div className="flex gap-1.5 items-center">
+                <select value={chartRange} onChange={(e) => setChartRange(e.target.value)} className="bg-slate-900 border border-slate-700 text-slate-300 text-[10px] rounded px-2 py-1 outline-none focus:border-emerald-500">
+                  <option value="3M">Last 3 Months</option>
+                  <option value="6M">Last 6 Months</option>
+                  <option value="1Y">Last Year</option>
+                  <option value="ALL">All Time</option>
+                </select>
               </div>
             </div>
+
             <div 
-              className="w-full h-52 flex items-center justify-center text-xs text-slate-500 pt-2"
+              className="w-full h-52 flex items-center justify-center text-xs text-slate-500 pt-2 border-t border-slate-800/50 mt-2"
               dangerouslySetInnerHTML={{ __html: drawUnifiedChart(chartPts) }}
             />
           </div>
@@ -357,7 +390,7 @@ function drawUnifiedChart(logPts: any[]) {
   const preys = logPts.filter(l => l.type === 'Feeding' && l.pVal !== null && !isNaN(Number(l.pVal)));
   const sheds = logPts.filter(l => l.type && l.type.includes('Shed'));
   
-  if (!weights.length && !preys.length && !sheds.length) return `<span class="text-xs text-slate-500 h-full flex items-center justify-center">No chart data logged yet.</span>`;
+  if (!weights.length && !preys.length && !sheds.length) return `<span class="text-xs text-slate-500 h-full flex items-center justify-center">No chart data matching these filters.</span>`;
 
   const w = 460, h = 200;
   const mLeft = 52, mRight = 22, mTop = 24, mBottom = 38;

@@ -17,6 +17,7 @@ export default function AnimalProfile() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState("Feeding");
+  const [editingLog, setEditingLog] = useState<any>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   
   // Lightbox State
@@ -104,6 +105,7 @@ export default function AnimalProfile() {
   };
 
   const openModal = (action = "Feeding") => {
+    setEditingLog(null); // Ensure we aren't stuck in edit mode
     setModalAction(action);
     setIsModalOpen(true);
   };
@@ -236,7 +238,6 @@ export default function AnimalProfile() {
                 </select>
               </div>
             </div>
-            {/* Dynamic height class for desktop expansion */}
             <div 
               className="w-full h-64 md:h-96 flex items-center justify-center text-xs text-slate-500 pt-2 border-t border-slate-800/50 mt-2 transition-all duration-300"
               dangerouslySetInnerHTML={{ __html: drawUnifiedChart(chartPts) }}
@@ -400,11 +401,12 @@ export default function AnimalProfile() {
                     {l.prey_weight_g && <span className="text-amber-300 font-bold ml-1">Prey: {l.prey_weight_g}g</span>}
                     <span className="text-slate-400 ml-2">{l.notes || ''}</span>
                   </div>
-                  <div className="flex items-center gap-4 shrink-0 ml-3">
-                    <span className="text-slate-500 text-xs">
+                  <div className="flex items-center gap-3 shrink-0 ml-3">
+                    <span className="text-slate-500 text-xs mr-2">
                       {new Date(l.activity_date || l.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
-                    <button onClick={() => handleDeleteLog(l.id)} className="text-red-400 hover:text-red-300 text-xs font-bold">🗑️</button>
+                    <button onClick={() => { setEditingLog(l); setIsModalOpen(true); }} className="text-sky-400 hover:text-sky-300 text-xs font-bold transition">✏️</button>
+                    <button onClick={() => handleDeleteLog(l.id)} className="text-red-400 hover:text-red-300 text-xs font-bold transition">🗑️</button>
                   </div>
                 </div>
               ))
@@ -522,12 +524,17 @@ export default function AnimalProfile() {
         </div>
       )}
 
+      {/* RENDER MODAL WITH EDIT STATE PROP */}
       <LogCareModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingLog(null);
+        }} 
         reptile={reptile} 
         onLogAdded={handleLogAdded} 
         initialAction={modalAction} 
+        editLog={editingLog}
       />
     </main>
   );
@@ -577,7 +584,6 @@ function drawUnifiedChart(logPts: any[]) {
   if (minT === maxT) {
     xTicksTimes = [minT];
   } else {
-    // Extended to 8 ticks to gracefully fill the wider screen
     const count = Math.min(8, Math.max(3, logPts.length));
     for (let i = 0; i < count; i++) xTicksTimes.push(minT + ((maxT - minT) * i) / (count - 1));
   }

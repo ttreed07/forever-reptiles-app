@@ -96,14 +96,13 @@ export default function Home() {
         members={members} 
       />
 
-      {/* Changed max-w-2xl to max-w-7xl to fill desktop screens */}
       <main className="p-4 space-y-5 max-w-7xl mx-auto pb-24">
         
-        {/* 3-Tab Main Navigation - Restricted to max-w-2xl so it doesn't stretch too wide */}
+        {/* 3-Tab Main Navigation */}
         <div className="grid grid-cols-3 bg-slate-900 p-1 rounded-2xl border border-slate-800 max-w-2xl mx-auto shadow-md">
-          <div className="py-2.5 rounded-xl text-xs font-extrabold bg-emerald-500 text-slate-950 flex items-center justify-center gap-1.5 transition">
+          <Link href="/" className="py-2.5 rounded-xl text-xs font-extrabold bg-emerald-500 text-slate-950 flex items-center justify-center gap-1.5 transition shadow-sm">
             🐍 Collection
-          </div>
+          </Link>
           <Link href="/husbandry" className="py-2.5 rounded-xl text-xs font-extrabold text-slate-400 text-center hover:text-white transition">
             📋 Husbandry
           </Link>
@@ -120,7 +119,6 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Search and Filter Bar - Restricted to max-w-4xl so it doesn't look stretched */}
           {!loading && reptiles.length > 0 && (
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3 flex flex-col sm:flex-row gap-2 shadow-sm max-w-4xl mx-auto">
               <input 
@@ -159,7 +157,6 @@ export default function Home() {
               No animals found. Add one to get started!
             </div>
           ) : (
-            // Dynamic Grid: 2 columns on phone, 3 on tablet, 4 on small desktop, 5 on widescreen
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 pt-4">
               {filteredReptiles.map((r) => {
                 const rules = getHusbandryRules(r, speciesRules, userSpeciesPrefs);

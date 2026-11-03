@@ -1,16 +1,24 @@
 export function daysAgo(dStr: string | Date | null): number | null {
   if (!dStr) return null;
+  
+  // Use a predictable UTC date object to strip away timezone shift issues
+  // This extracts the YYYY-MM-DD from the input string and compares it 
+  // strictly against the local user's calendar day.
   const now = new Date();
   const todayCal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
   let targetCal;
-  if (typeof dStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dStr.trim())) {
-    const [y, m, d] = dStr.trim().split('-').map(Number);
+  if (typeof dStr === 'string' && dStr.length >= 10) {
+    // Force parse the YYYY-MM-DD portion locally
+    const datePart = dStr.slice(0, 10);
+    const [y, m, d] = datePart.split('-').map(Number);
     targetCal = new Date(y, m - 1, d);
   } else {
     const parsed = new Date(dStr);
     if (isNaN(parsed.getTime())) return null;
     targetCal = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
   }
+  
   return Math.max(0, Math.round((todayCal.getTime() - targetCal.getTime()) / 86400000));
 }
 
@@ -78,11 +86,13 @@ export function getHusbandryRules(r: any, speciesRules: any[] = [], userSpeciesP
   }
 
   const hasManualOverride = r.manual_feeder_override === true && Boolean(r.custom_feeder_size);
-  if (hasManualOverride) fName = r.custom_feeder_size;
+  let customFeederSize = r.custom_feeder_size || '';
+  
+  if (hasManualOverride) fName = customFeederSize;
 
   if (hasManualOverride) {
-    targetShort = `${r.custom_feeder_size}`;
-    summary = `<strong>Manual Feeder Override:</strong> Target Prey <strong class="text-amber-400">${r.custom_feeder_size}</strong> • Window: <strong>${windowLabel}</strong> (Target ${feedDays}d)`;
+    targetShort = `${customFeederSize}`;
+    summary = `<strong>Manual Feeder Override:</strong> Target Prey <strong class="text-amber-400">${customFeederSize}</strong> • Window: <strong>${windowLabel}</strong> (Target ${feedDays}d)`;
   } else if (!isSnake) {
     targetShort = s.includes('leopard gecko') ? 'Insects' : (s.includes('crested gecko') ? 'CGD / Insects' : 'Insects / Greens');
     summary = `<strong>${r.species}:</strong> Feed every <strong>${windowLabel}</strong> (Target ${feedDays}d).<br><span class="text-sky-300">${dietGuide || 'Nutrient-rich insects & appropriate greens.'}</span>`;
@@ -103,5 +113,5 @@ export function getHusbandryRules(r: any, speciesRules: any[] = [], userSpeciesP
     }
   }
 
-  return { isSnake, useSmart, hasManualOverride, feedDays, minWin, maxWin, waterDays: waterD, mistDays: mistD, minG, maxG, fName, windowLabel, targetShort, summary, srcName, srcLink, tBasking, tWarm, tCool, hMin, hMax, sub, enc, dietGuide };
+  return { isSnake, useSmart, hasManualOverride, customFeederSize, feedDays, minWin, maxWin, waterDays: waterD, mistDays: mistD, minG, maxG, fName, windowLabel, targetShort, summary, srcName, srcLink, tBasking, tWarm, tCool, hMin, hMax, sub, enc, dietGuide };
 }

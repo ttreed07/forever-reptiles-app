@@ -12,11 +12,17 @@ export default function LogCareModal({ isOpen, onClose, reptile, onLogAdded, ini
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
+  // Helper to force local timezone without UTC shifting
+  const formatLocalISOString = (date = new Date()) => {
+    const tzOffset = date.getTimezoneOffset() * 60000; 
+    const localISOTime = new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
+    return localISOTime;
+  };
+
   useEffect(() => {
     if (isOpen) {
       setActionType(initialAction);
-      const now = new Date();
-      setDateStr(new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16));
+      setDateStr(formatLocalISOString());
       setWeight("");
       setPreyWeight("");
       setNotes("");
@@ -28,7 +34,6 @@ export default function LogCareModal({ isOpen, onClose, reptile, onLogAdded, ini
 
   const rules = getHusbandryRules(reptile);
   
-  // Determine primary category for UI toggles
   let cat = "chores";
   if (actionType === "Weight") cat = "weight";
   else if (actionType === "Feeding") cat = "feeding";
@@ -48,18 +53,18 @@ export default function LogCareModal({ isOpen, onClose, reptile, onLogAdded, ini
     setIsSaving(true);
     const { data: { user } } = await db.auth.getUser();
     
-    // Fetch profile to get display name (fallback to email)
     const { data: profile } = await db.from("user_profiles").select("display_name").eq("id", user?.id).single();
     const loggedBy = profile?.display_name || user?.email || "Unknown";
 
-    const logDateObj = new Date(dateStr || Date.now());
+    // Create a strict local date object to prevent UTC shifting during save
+    const selectedDate = new Date(dateStr);
     
     const payload = { 
       reptile_id: reptile.id, 
       reptile_name: reptile.name, 
       activity_type: actionType, 
       logged_by: loggedBy, 
-      activity_date: logDateObj.toISOString(), 
+      activity_date: selectedDate.toISOString(), 
       value_numeric: (cat === 'weight' && weight) ? parseFloat(weight) : null, 
       prey_weight_g: (cat === 'feeding' && preyWeight) ? parseFloat(preyWeight) : null, 
       notes: notes.trim() || null, 
@@ -68,14 +73,17 @@ export default function LogCareModal({ isOpen, onClose, reptile, onLogAdded, ini
 
     await db.from('activity_logs').insert([payload]);
     
+    // Explicitly grab the YYYY-MM-DD from the local user input string, NOT the shifted ISO string
+    const localDateOnly = dateStr.slice(0, 10);
+    
     if (actionType === 'Feeding') {
-      await db.from('reptiles').update({ last_fed: logDateObj.toISOString().slice(0, 10) }).eq('id', reptile.id);
+      await db.from('reptiles').update({ last_fed: localDateOnly }).eq('id', reptile.id);
     } else if (actionType === 'Weight' && weight) {
       await db.from('reptiles').update({ current_weight_g: parseFloat(weight) }).eq('id', reptile.id);
     }
     
-    onLogAdded(); // Refresh data on the main page
-    onClose();    // Close the modal
+    onLogAdded(); 
+    onClose();    
   };
 
   const catStyles: any = {
